@@ -1,0 +1,42 @@
+.page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.page h1 {
+    margin-bottom: 24px;
+}
+
+.filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+    background: #ffffff;
+    padding: 18px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.filters input,
+.filters select,
+.filters button {
+    padding: 12px;
+    border: 1px solid #cccccc;
+    border-radius: 10px;
+    font-size: 0.95rem;
+}
+
+.filters button {
+    background: #111827;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+}
+
+.cars-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
