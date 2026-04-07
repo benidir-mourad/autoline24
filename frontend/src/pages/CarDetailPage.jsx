@@ -34,6 +34,28 @@ export default function CarDetailPage() {
         }
     }
 
+    function goToNext() {
+        if (!car?.images?.length) return;
+
+        const currentIndex = car.images.findIndex(
+            (img) => img.image_url === selectedImage
+        );
+
+        const nextIndex = (currentIndex + 1) % car.images.length;
+        setSelectedImage(car.images[nextIndex].image_url);
+    }
+
+    function goToPrev() {
+        if (!car?.images?.length) return;
+
+        const currentIndex = car.images.findIndex(
+            (img) => img.image_url === selectedImage
+        );
+
+        const prevIndex = (currentIndex - 1 + car.images.length) % car.images.length;
+        setSelectedImage(car.images[prevIndex].image_url);
+    }
+
     const formattedPrice = useMemo(() => {
         if (!car?.price) return "";
         return Number(car.price).toLocaleString("fr-BE", {
@@ -63,20 +85,42 @@ export default function CarDetailPage() {
             <section className="car-detail__top">
                 <div className="car-detail__gallery">
                     {selectedImage ? (
-                        <img
-                            src={selectedImage}
-                            alt={`${car.brand} ${car.model}`}
-                            className="car-detail__main-image"
-                            onError={(e) => {
-                                e.currentTarget.src =
-                                    "https://via.placeholder.com/800x500?text=Voiture";
-                            }}
-                        />
+                        <div className="car-detail__image-wrapper">
+                            {car.images?.length > 1 && (
+                                <button
+                                    type="button"
+                                    className="car-detail__arrow car-detail__arrow--left"
+                                    onClick={goToPrev}
+                                >
+                                    ‹
+                                </button>
+                            )}
+
+                            <img
+                                src={selectedImage}
+                                alt={`${car.brand} ${car.model}`}
+                                className="car-detail__main-image"
+                                onError={(e) => {
+                                    e.currentTarget.src =
+                                        "https://via.placeholder.com/800x500?text=Voiture";
+                                }}
+                            />
+
+                            {car.images?.length > 1 && (
+                                <button
+                                    type="button"
+                                    className="car-detail__arrow car-detail__arrow--right"
+                                    onClick={goToNext}
+                                >
+                                    ›
+                                </button>
+                            )}
+                        </div>
                     ) : (
                         <div className="car-detail__placeholder">Aucune image</div>
                     )}
 
-                    {car.images?.length > 0 && (
+                    {car.images?.length > 1 && (
                         <div className="car-detail__thumbs">
                             {car.images.map((image) => (
                                 <button
