@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 export default function AdminLoginPage() {
+    const navigate = useNavigate();
+
     const [form, setForm] = useState({
         email: "",
         password: "",
@@ -24,6 +27,7 @@ export default function AdminLoginPage() {
             const response = await api.post("/admin/login", form);
             localStorage.setItem("token", response.data.token);
             setMessage("Connexion réussie.");
+            navigate("/admin/cars");
         } catch (error) {
             setMessage("Erreur de connexion.");
             console.error(error);

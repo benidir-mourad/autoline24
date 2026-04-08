@@ -1,32 +1,44 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import CarCard from "../components/CarCard";
 import FilterBar from "../components/FilterBar";
 import "../styles/cars.css";
 
+function getInitialFilters(searchParams) {
+    return {
+        search: searchParams.get("search") || "",
+        brand: searchParams.get("brand") || "",
+        min_price: searchParams.get("min_price") || "",
+        max_price: searchParams.get("max_price") || "",
+        min_year: searchParams.get("min_year") || "",
+        max_mileage: searchParams.get("max_mileage") || "",
+        fuel_type: searchParams.get("fuel_type") || "",
+        sort: searchParams.get("sort") || "",
+        option_ids: searchParams.getAll("option_ids") || [],
+        per_page: searchParams.get("per_page") || 9,
+    };
+}
+
+function getInitialPage(searchParams) {
+    return Number(searchParams.get("page") || 1);
+}
+
 export default function CarsPage() {
+    const [searchParams, setSearchParams] = useSearchParams();
+
     const [cars, setCars] = useState([]);
     const [options, setOptions] = useState([]);
     const [brands, setBrands] = useState([]);
     const [loading, setLoading] = useState(true);
+
     const [meta, setMeta] = useState({
         total: 0,
-        current_page: 1,
+        current_page: getInitialPage(searchParams),
         last_page: 1,
     });
 
-    const [filters, setFilters] = useState({
-        search: "",
-        brand: "",
-        min_price: "",
-        max_price: "",
-        min_year: "",
-        max_mileage: "",
-        fuel_type: "",
-        sort: "",
-        option_ids: [],
-        per_page: 9,
-    });
+    const [filters, setFilters] = useState(() => getInitialFilters(searchParams));
 
     useEffect(() => {
         fetchOptions();
@@ -34,12 +46,24 @@ export default function CarsPage() {
     }, []);
 
     useEffect(() => {
+        const urlFilters = getInitialFilters(searchParams);
+        const urlPage = getInitialPage(searchParams);
+
+        setFilters(urlFilters);
+        setMeta((prev) => ({
+            ...prev,
+            current_page: urlPage,
+        }));
+    }, [searchParams]);
+
+    useEffect(() => {
         const delayDebounce = setTimeout(() => {
-            fetchCars(filters, 1);
+            updateUrlFromState(filters, meta.current_page);
+            fetchCars(filters, meta.current_page);
         }, 400);
 
         return () => clearTimeout(delayDebounce);
-    }, [filters]);
+    }, [filters, meta.current_page]);
 
     async function fetchCars(customFilters = filters, page = 1) {
         try {
@@ -53,11 +77,12 @@ export default function CarsPage() {
             });
 
             setCars(response.data.data ?? []);
-            setMeta({
+            setMeta((prev) => ({
+                ...prev,
                 total: response.data.total ?? 0,
                 current_page: response.data.current_page ?? 1,
                 last_page: response.data.last_page ?? 1,
-            });
+            }));
         } catch (error) {
             console.error("Erreur lors du chargement des voitures :", error);
         } finally {
@@ -83,6 +108,30 @@ export default function CarsPage() {
         }
     }
 
+    function updateUrlFromState(currentFilters, currentPage = 1) {
+        const params = new URLSearchParams();
+
+        if (currentFilters.search) params.set("search", currentFilters.search);
+        if (currentFilters.brand) params.set("brand", currentFilters.brand);
+        if (currentFilters.min_price) params.set("min_price", currentFilters.min_price);
+        if (currentFilters.max_price) params.set("max_price", currentFilters.max_price);
+        if (currentFilters.min_year) params.set("min_year", currentFilters.min_year);
+        if (currentFilters.max_mileage) params.set("max_mileage", currentFilters.max_mileage);
+        if (currentFilters.fuel_type) params.set("fuel_type", currentFilters.fuel_type);
+        if (currentFilters.sort) params.set("sort", currentFilters.sort);
+        if (currentFilters.per_page) params.set("per_page", currentFilters.per_page);
+
+        currentFilters.option_ids.forEach((id) => {
+            params.append("option_ids", id);
+        });
+
+        if (currentPage > 1) {
+            params.set("page", String(currentPage));
+        }
+
+        setSearchParams(params, { replace: true });
+    }
+
     function handleFilterChange(event) {
         const { name, value, checked } = event.target;
 
@@ -104,12 +153,22 @@ export default function CarsPage() {
                 };
             });
 
+            setMeta((prev) => ({
+                ...prev,
+                current_page: 1,
+            }));
+
             return;
         }
 
         setFilters((prev) => ({
             ...prev,
             [name]: value,
+        }));
+
+        setMeta((prev) => ({
+            ...prev,
+            current_page: 1,
         }));
     }
 
@@ -130,10 +189,22 @@ export default function CarsPage() {
             option_ids: [],
             per_page: 9,
         });
+
+        setMeta((prev) => ({
+            ...prev,
+            current_page: 1,
+            last_page: 1,
+        }));
+
+        setSearchParams({});
     }
 
     function handlePageChange(page) {
-        fetchCars(filters, page);
+        setMeta((prev) => ({
+            ...prev,
+            current_page: page,
+        }));
+
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
