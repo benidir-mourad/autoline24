@@ -17,6 +17,7 @@ Route::get('/cars', [CarController::class, 'publicIndex']);
 Route::get('/cars/{id}', [CarController::class, 'publicShow']);
 Route::post('/admin/login', [AuthController::class, 'login']);
 Route::get('/options', [OptionController::class, 'index']);
+Route::get('/brands', [CarController::class, 'brands']);
 
 /*
 |--------------------------------------------------------------------------

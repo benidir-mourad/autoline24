@@ -6,6 +6,8 @@ import "../styles/cars.css";
 
 export default function CarsPage() {
     const [cars, setCars] = useState([]);
+    const [options, setOptions] = useState([]);
+    const [brands, setBrands] = useState([]);
     const [loading, setLoading] = useState(true);
     const [meta, setMeta] = useState({
         total: 0,
@@ -22,12 +24,22 @@ export default function CarsPage() {
         max_mileage: "",
         fuel_type: "",
         sort: "",
+        option_ids: [],
         per_page: 9,
     });
 
     useEffect(() => {
-        fetchCars();
+        fetchOptions();
+        fetchBrands();
     }, []);
+
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+            fetchCars(filters, 1);
+        }, 400);
+
+        return () => clearTimeout(delayDebounce);
+    }, [filters]);
 
     async function fetchCars(customFilters = filters, page = 1) {
         try {
@@ -53,8 +65,47 @@ export default function CarsPage() {
         }
     }
 
+    async function fetchOptions() {
+        try {
+            const response = await api.get("/options");
+            setOptions(response.data ?? []);
+        } catch (error) {
+            console.error("Erreur lors du chargement des options :", error);
+        }
+    }
+
+    async function fetchBrands() {
+        try {
+            const response = await api.get("/brands");
+            setBrands(response.data ?? []);
+        } catch (error) {
+            console.error("Erreur lors du chargement des marques :", error);
+        }
+    }
+
     function handleFilterChange(event) {
-        const { name, value } = event.target;
+        const { name, value, checked } = event.target;
+
+        if (name === "option_ids") {
+            setFilters((prev) => {
+                let updated = [...prev.option_ids];
+
+                if (checked) {
+                    if (!updated.includes(String(value))) {
+                        updated.push(String(value));
+                    }
+                } else {
+                    updated = updated.filter((id) => id !== String(value));
+                }
+
+                return {
+                    ...prev,
+                    option_ids: updated,
+                };
+            });
+
+            return;
+        }
 
         setFilters((prev) => ({
             ...prev,
@@ -64,11 +115,10 @@ export default function CarsPage() {
 
     function handleSubmit(event) {
         event.preventDefault();
-        fetchCars(filters, 1);
     }
 
     function handleReset() {
-        const resetFilters = {
+        setFilters({
             search: "",
             brand: "",
             min_price: "",
@@ -77,11 +127,9 @@ export default function CarsPage() {
             max_mileage: "",
             fuel_type: "",
             sort: "",
+            option_ids: [],
             per_page: 9,
-        };
-
-        setFilters(resetFilters);
-        fetchCars(resetFilters, 1);
+        });
     }
 
     function handlePageChange(page) {
@@ -93,13 +141,13 @@ export default function CarsPage() {
         <main className="page cars-page">
             <div className="cars-page__header">
                 <h1>Nos voitures</h1>
-                <p>
-                    Découvrez notre sélection de véhicules d’occasion disponibles.
-                </p>
+                <p>Découvrez notre sélection de véhicules d’occasion disponibles.</p>
             </div>
 
             <FilterBar
                 filters={filters}
+                options={options}
+                brands={brands}
                 onChange={handleFilterChange}
                 onSubmit={handleSubmit}
                 onReset={handleReset}

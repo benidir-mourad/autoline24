@@ -60,10 +60,14 @@ class CarController extends Controller
             $query->where('mileage', '<=', $request->max_mileage);
         }
 
-        if ($request->filled('option_id')) {
-            $query->whereHas('options', function ($q) use ($request) {
-                $q->where('options.id', $request->option_id);
-            });
+        if ($request->filled('option_ids')) {
+            $optionIds = $request->option_ids;
+
+            foreach ($optionIds as $optionId) {
+                $query->whereHas('options', function ($q) use ($optionId) {
+                    $q->where('options.id', $optionId);
+                });
+            }
         }
 
         // 🔎 recherche globale (très utile)
@@ -192,5 +196,17 @@ class CarController extends Controller
         return response()->json([
             'message' => 'Voiture supprimée avec succès.'
         ]);
+    }
+
+    public function brands()
+    {
+        $brands = Car::query()
+            ->where('publication_status', 'published')
+            ->select('brand')
+            ->distinct()
+            ->orderBy('brand')
+            ->pluck('brand');
+
+        return response()->json($brands);
     }
 }

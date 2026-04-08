@@ -1,6 +1,69 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import "../styles/cars.css";
 
-export default function FilterBar({ filters, onChange, onSubmit, onReset }) {
+export default function FilterBar({
+                                      filters,
+                                      options,
+                                      brands,
+                                      onChange,
+                                      onSubmit,
+                                      onReset,
+                                  }) {
+    const [open, setOpen] = useState(false);
+    const [optionSearch, setOptionSearch] = useState("");
+    const dropdownRef = useRef();
+
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setOpen(false);
+            }
+        }
+
+        document.addEventListener("click", handleClickOutside);
+        return () => document.removeEventListener("click", handleClickOutside);
+    }, []);
+
+    const filteredOptions = useMemo(() => {
+        if (!optionSearch.trim()) return options;
+
+        return options.filter((option) =>
+            option.name.toLowerCase().includes(optionSearch.toLowerCase())
+        );
+    }, [options, optionSearch]);
+
+    const selectedOptions = useMemo(() => {
+        return options.filter((option) =>
+            filters.option_ids.includes(String(option.id))
+        );
+    }, [options, filters.option_ids]);
+
+    function removeSelectedOption(optionId) {
+        const fakeEvent = {
+            target: {
+                name: "option_ids",
+                value: String(optionId),
+                checked: false,
+            },
+        };
+
+        onChange(fakeEvent);
+    }
+
+    function clearAllOptions() {
+        filters.option_ids.forEach((id) => {
+            const fakeEvent = {
+                target: {
+                    name: "option_ids",
+                    value: id,
+                    checked: false,
+                },
+            };
+
+            onChange(fakeEvent);
+        });
+    }
+
     return (
         <form className="filters filters--card" onSubmit={onSubmit}>
             <div className="filters__group filters__group--full">
@@ -15,16 +78,95 @@ export default function FilterBar({ filters, onChange, onSubmit, onReset }) {
                 />
             </div>
 
+            <div className="filters__group filters__group--full" ref={dropdownRef}>
+                <div className="filters__label-row">
+                    <label>Options</label>
+
+                    {filters.option_ids.length > 0 && (
+                        <button
+                            type="button"
+                            className="filters__clear-link"
+                            onClick={clearAllOptions}
+                        >
+                            Tout effacer
+                        </button>
+                    )}
+                </div>
+
+                <div className="dropdown">
+                    <button
+                        type="button"
+                        className="dropdown__button"
+                        onClick={() => setOpen(!open)}
+                    >
+                        {filters.option_ids.length > 0
+                            ? `${filters.option_ids.length} option(s) sélectionnée(s)`
+                            : "Toutes les options"}
+                    </button>
+
+                    {open && (
+                        <div className="dropdown__menu">
+                            <input
+                                type="text"
+                                className="dropdown__search"
+                                placeholder="Rechercher une option..."
+                                value={optionSearch}
+                                onChange={(e) => setOptionSearch(e.target.value)}
+                            />
+
+                            <div className="dropdown__list">
+                                {filteredOptions.length > 0 ? (
+                                    filteredOptions.map((option) => (
+                                        <label key={option.id} className="dropdown__item">
+                                            <input
+                                                type="checkbox"
+                                                name="option_ids"
+                                                value={option.id}
+                                                checked={filters.option_ids.includes(String(option.id))}
+                                                onChange={onChange}
+                                            />
+                                            {option.name}
+                                        </label>
+                                    ))
+                                ) : (
+                                    <p className="dropdown__empty">Aucune option trouvée.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {selectedOptions.length > 0 && (
+                    <div className="filters__chips">
+                        {selectedOptions.map((option) => (
+                            <button
+                                key={option.id}
+                                type="button"
+                                className="filters__chip"
+                                onClick={() => removeSelectedOption(option.id)}
+                            >
+                                {option.name} <span>×</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+
             <div className="filters__group">
                 <label htmlFor="brand">Marque</label>
-                <input
+                <select
                     id="brand"
-                    type="text"
                     name="brand"
-                    placeholder="Ex: Volkswagen"
                     value={filters.brand}
                     onChange={onChange}
-                />
+                >
+                    <option value="">Toutes</option>
+                    {brands.map((brand) => (
+                        <option key={brand} value={brand}>
+                            {brand}
+                        </option>
+                    ))}
+                </select>
             </div>
 
             <div className="filters__group">
@@ -93,7 +235,12 @@ export default function FilterBar({ filters, onChange, onSubmit, onReset }) {
 
             <div className="filters__group">
                 <label htmlFor="sort">Tri</label>
-                <select id="sort" name="sort" value={filters.sort} onChange={onChange}>
+                <select
+                    id="sort"
+                    name="sort"
+                    value={filters.sort}
+                    onChange={onChange}
+                >
                     <option value="">Par défaut</option>
                     <option value="price_asc">Prix croissant</option>
                     <option value="price_desc">Prix décroissant</option>
