@@ -21,6 +21,7 @@ class AppSettingApiTest extends TestCase
                 'contact_phone',
                 'contact_email',
                 'contact_address',
+                'company_vat',
                 'contact_map_embed_url',
             ]);
     }
@@ -33,12 +34,14 @@ class AppSettingApiTest extends TestCase
             'contact_phone' => '+32 471 11 22 33',
             'contact_email' => 'vente@autoline24.test',
             'contact_address' => 'Rue du Commerce 10, 1000 Bruxelles',
+            'company_vat' => 'BE 0999.888.777',
             'contact_map_embed_url' => 'https://www.google.com/maps?q=Bruxelles&output=embed',
         ]);
 
         $response
             ->assertOk()
             ->assertJsonPath('message', 'Coordonnées mises à jour avec succès.')
-            ->assertJsonPath('settings.contact_phone', '+32 471 11 22 33');
+            ->assertJsonPath('settings.contact_phone', '+32 471 11 22 33')
+            ->assertJsonPath('settings.company_vat', 'BE 0999.888.777');
     }
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 
 export default function AdminLoginPage() {
@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
             setMessage("");
             await login(form);
             setMessage("Connexion réussie.");
-            navigate(location.state?.from?.pathname || "/admin/cars", { replace: true });
+            navigate(location.state?.from?.pathname || "/admin", { replace: true });
         } catch (error) {
             setMessage("Erreur de connexion.");
             console.error(error);
@@ -41,31 +41,39 @@ export default function AdminLoginPage() {
 
     return (
         <main className="page">
-            <h1>Connexion admin</h1>
+            <section className="home-hero">
+                <span className="page-eyebrow">Admin</span>
+                <h1>Connexion admin</h1>
 
-            <form className="filters" onSubmit={handleSubmit}>
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="Email"
-                    value={form.email}
-                    onChange={handleChange}
-                />
+                <form className="filters admin-login-form" onSubmit={handleSubmit}>
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="E-mail"
+                        value={form.email}
+                        onChange={handleChange}
+                    />
 
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="Mot de passe"
-                    value={form.password}
-                    onChange={handleChange}
-                />
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Mot de passe"
+                        value={form.password}
+                        onChange={handleChange}
+                    />
 
-                <button type="submit" disabled={loading}>
-                    {loading ? "Connexion..." : "Se connecter"}
-                </button>
-            </form>
+                    <button type="submit" disabled={loading}>
+                        {loading ? "Connexion..." : "Se connecter"}
+                    </button>
+                </form>
 
-            {message && <p>{message}</p>}
+                <div className="page-backlinks admin-login-links">
+                    <Link to="/admin/forgot-password">Mot de passe oublié ?</Link>
+                    <Link to="/cars">Retour au site</Link>
+                </div>
+
+                {message && <p>{message}</p>}
+            </section>
         </main>
     );
 }

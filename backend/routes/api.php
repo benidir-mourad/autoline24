@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/cars', [CarController::class, 'publicIndex']);
 Route::get('/cars/{id}', [CarController::class, 'publicShow']);
 Route::post('/admin/login', [AuthController::class, 'login']);
+Route::post('/admin/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/admin/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/options', [OptionController::class, 'index']);
 Route::get('/brands', [CarController::class, 'brands']);
 Route::get('/settings/contact', [AppSettingController::class, 'publicContact']);
@@ -31,6 +33,8 @@ Route::get('/settings/contact', [AppSettingController::class, 'publicContact']);
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::put('/change-password', [AuthController::class, 'changePassword']);
+    Route::put('/change-email', [AuthController::class, 'changeEmail']);
 
     Route::get('/cars', [CarController::class, 'index']);
     Route::post('/cars', [CarController::class, 'store']);

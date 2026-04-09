@@ -54,6 +54,11 @@ export default function ContactPage() {
                     <span>Adresse</span>
                     <strong>{contactSettings.contact_address}</strong>
                 </article>
+
+                <article className="contact-page__card">
+                    <span>TVA</span>
+                    <strong>{contactSettings.company_vat || "À compléter"}</strong>
+                </article>
             </section>
 
             <section className="contact-page__map">

@@ -331,6 +331,27 @@
     font-size: 0.95rem;
 }
 
+.admin-settings-panel {
+    margin-top: 28px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.admin-settings-panel__header {
+    margin-bottom: 16px;
+}
+
+.admin-settings-panel__header h2 {
+    margin: 0 0 6px;
+}
+
+.admin-settings-panel__header p {
+    margin: 0;
+    color: #6b7280;
+}
+
 .admin-feedback {
     margin: 0 0 16px;
     font-size: 0.95rem;
@@ -343,6 +364,53 @@
 
 .admin-feedback--error {
     color: #b91c1c;
+}
+
+.admin-dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.admin-dashboard-card {
+    display: block;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 24px;
+    text-decoration: none;
+    color: #111827;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.admin-dashboard-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12);
+}
+
+.admin-dashboard-card__eyebrow {
+    display: inline-block;
+    margin-bottom: 10px;
+    color: #0f766e;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.admin-dashboard-card h2 {
+    margin: 0 0 10px;
+}
+
+.admin-dashboard-card p {
+    margin: 0 0 18px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.admin-dashboard-card strong {
+    color: #0f766e;
 }
 
 .admin-vehicle-sheet {
@@ -706,6 +774,10 @@
     }
 
     .admin-form {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-dashboard-grid {
         grid-template-columns: 1fr;
     }
 

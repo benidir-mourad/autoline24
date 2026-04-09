@@ -6,6 +6,7 @@ const fallbackSettings = {
     contact_phone: "+32 470 00 00 00",
     contact_email: "contact@autoline24.test",
     contact_address: "Rue de l Exemple 1, 1000 Bruxelles",
+    company_vat: "BE 0123.456.789",
     contact_map_embed_url: "https://www.google.com/maps?q=Bruxelles&output=embed",
 };
 

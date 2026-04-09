@@ -88,6 +88,7 @@ export default function AdminCarsPage() {
     return (
         <main className="page admin-page">
             <div className="page-backlinks admin-print-hidden">
+                <Link to="/admin">Retour au choix admin</Link>
                 <Link to="/cars">Retour au site</Link>
             </div>
 
@@ -101,7 +102,7 @@ export default function AdminCarsPage() {
                 <div>
                     <h1>Administration - Voitures</h1>
                     <p className="admin-page__subtitle">
-                        Gérez le stock, les exports et les paramètres de contact.
+                        Gérez le stock, les exports et les actions sur les véhicules.
                     </p>
                 </div>
 

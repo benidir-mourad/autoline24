@@ -12,6 +12,7 @@ class AppSettingController extends Controller
         'contact_phone' => '+32 470 00 00 00',
         'contact_email' => 'contact@autoline24.test',
         'contact_address' => 'Rue de l Exemple 1, 1000 Bruxelles',
+        'company_vat' => 'BE 0123.456.789',
         'contact_map_embed_url' => 'https://www.google.com/maps?q=Bruxelles&output=embed',
     ];
 
@@ -31,6 +32,7 @@ class AppSettingController extends Controller
             'contact_phone' => ['required', 'string', 'max:255'],
             'contact_email' => ['required', 'email', 'max:255'],
             'contact_address' => ['required', 'string', 'max:500'],
+            'company_vat' => ['nullable', 'string', 'max:255'],
             'contact_map_embed_url' => ['nullable', 'url', 'max:2000'],
         ]);
 

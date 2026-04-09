@@ -13,7 +13,7 @@ export default function PublicOnlyRoute() {
     }
 
     if (isAuthenticated) {
-        return <Navigate to="/admin/cars" replace />;
+        return <Navigate to="/admin" replace />;
     }
 
     return <Outlet />;

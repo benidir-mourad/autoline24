@@ -750,6 +750,7 @@ export default function AdminCarFormPage() {
                 <button type="button" className="page-link-button" onClick={() => navigate(-1)}>
                     Retour
                 </button>
+                <Link to="/admin">Retour au choix admin</Link>
                 <Link to="/admin/cars">Retour à la liste admin</Link>
                 <Link to="/admin/settings">Paramètres contact</Link>
                 <Link to="/cars">Voir le site</Link>

@@ -66,6 +66,25 @@ export function AuthProvider({ children }) {
         return response.data;
     }
 
+    async function changePassword(payload) {
+        const response = await api.put("/admin/change-password", payload);
+        const nextToken = response.data.token;
+
+        localStorage.setItem("token", nextToken);
+        setToken(nextToken);
+
+        return response.data;
+    }
+
+    async function changeEmail(payload) {
+        const response = await api.put("/admin/change-email", payload);
+        const nextUser = response.data.user;
+
+        setUser(nextUser);
+
+        return response.data;
+    }
+
     async function logout() {
         try {
             await api.post("/admin/logout");
@@ -100,6 +119,8 @@ export function AuthProvider({ children }) {
                 isLoading,
                 isAuthenticated: Boolean(token && user),
                 login,
+                changeEmail,
+                changePassword,
                 logout,
                 refreshAuth,
             }}
