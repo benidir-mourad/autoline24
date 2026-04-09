@@ -122,11 +122,104 @@
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
+.admin-images-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.admin-images-section__header h2 {
+    margin: 0 0 6px;
+}
+
+.admin-images-section__header p {
+    margin: 0;
+    color: #6b7280;
+}
+
 .admin-images-upload {
     display: flex;
     gap: 12px;
     align-items: center;
     margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.admin-images-input {
+    display: none;
+}
+
+.admin-upload-dropzone {
+    width: 100%;
+    min-height: 140px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    color: #111827;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+    margin-bottom: 18px;
+    text-align: center;
+    padding: 20px;
+}
+
+.admin-upload-dropzone.is-dragover {
+    border-color: #0f766e;
+    background: linear-gradient(180deg, #ecfeff 0%, #dcfce7 100%);
+    transform: translateY(-1px);
+}
+
+.admin-upload-dropzone__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    background: #111827;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.admin-upload-preview {
+    display: grid;
+    grid-template-columns: minmax(180px, 220px) 1fr;
+    gap: 18px;
+    align-items: center;
+    padding: 16px;
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    background: #f8fafc;
+}
+
+.admin-upload-preview__image {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 14px;
+}
+
+.admin-upload-preview__content h3 {
+    margin: 0 0 8px;
+}
+
+.admin-upload-preview__content p {
+    margin: 0 0 14px;
+    color: #6b7280;
+}
+
+.admin-upload-preview__actions {
+    display: flex;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
@@ -143,6 +236,11 @@
     background: #f9fafb;
 }
 
+.admin-image-card.is-main {
+    border-color: #111827;
+    box-shadow: 0 10px 25px rgba(17, 24, 39, 0.12);
+}
+
 .admin-image-card__img {
     width: 100%;
     height: 180px;
@@ -150,12 +248,25 @@
     display: block;
 }
 
+.admin-image-card__content {
+    padding: 12px;
+}
+
+.admin-image-card__meta {
+    margin-bottom: 10px;
+}
+
+.admin-image-card__hint {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
 .admin-image-card__actions {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    padding: 12px;
+    padding: 0;
 }
 
 .admin-image-card__badge {
@@ -212,6 +323,141 @@
 
 .admin-feedback--error {
     color: #b91c1c;
+}
+
+.admin-summary-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.admin-summary-card {
+    background: #ffffff;
+    padding: 18px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+}
+
+.admin-summary-card span {
+    display: block;
+    margin-bottom: 10px;
+    color: #6b7280;
+    font-size: 0.92rem;
+}
+
+.admin-summary-card strong {
+    font-size: 1.25rem;
+    color: #111827;
+}
+
+.admin-summary-card.is-positive strong {
+    color: #166534;
+}
+
+.admin-summary-card.is-negative strong {
+    color: #b91c1c;
+}
+
+.admin-expenses-section {
+    margin-bottom: 28px;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.admin-expenses-section__header {
+    margin-bottom: 16px;
+}
+
+.admin-expenses-section__header h2 {
+    margin: 0 0 6px;
+}
+
+.admin-expenses-section__header p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.admin-expense-form {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(140px, 1fr)) auto;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.admin-expense-form input,
+.admin-expense-form select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    font-size: 0.95rem;
+}
+
+.admin-expense-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.admin-chip {
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    color: #111827;
+    padding: 8px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.admin-chip.is-active {
+    background: #111827;
+    color: #ffffff;
+    border-color: #111827;
+}
+
+.admin-expenses-list {
+    display: grid;
+    gap: 12px;
+}
+
+.admin-expense-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 16px;
+    background: #f9fafb;
+}
+
+.admin-expense-card__top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.admin-expense-card__top h3 {
+    margin: 0 0 4px;
+}
+
+.admin-expense-card__top p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.admin-expense-card__description {
+    margin: 12px 0 0;
+    color: #374151;
+}
+
+.admin-expense-card__actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 14px;
 }
 
 .admin-options-grid {
@@ -294,6 +540,14 @@
     }
 
     .admin-form {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-expense-form {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-upload-preview {
         grid-template-columns: 1fr;
     }
 }

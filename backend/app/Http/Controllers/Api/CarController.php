@@ -22,8 +22,6 @@ class CarController extends Controller
         $query = Car::with(['images', 'mainImage', 'options'])
             ->where('publication_status', 'published');
 
-        // 🔍 FILTRES
-
         if ($request->filled('brand')) {
             $query->where('brand', 'like', '%' . $request->brand . '%');
         }
@@ -70,17 +68,15 @@ class CarController extends Controller
             }
         }
 
-        // 🔎 recherche globale (très utile)
         if ($request->filled('search')) {
             $search = $request->search;
 
             $query->where(function ($q) use ($search) {
                 $q->where('brand', 'like', "%$search%")
-                  ->orWhere('model', 'like', "%$search%");
+                    ->orWhere('model', 'like', "%$search%");
             });
         }
 
-        // 🔄 TRI
         if ($request->filled('sort')) {
             match ($request->sort) {
                 'price_asc' => $query->orderBy('price', 'asc'),
@@ -93,13 +89,13 @@ class CarController extends Controller
             $query->latest();
         }
 
-        // 📄 PAGINATION
         $perPage = $request->get('per_page', 10);
 
         return response()->json(
             $query->paginate($perPage)
         );
     }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

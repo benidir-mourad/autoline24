@@ -39,7 +39,7 @@ class CarExpenseController extends Controller
         $expense = $car->expenses()->create($validated);
 
         return response()->json([
-            'message' => 'Dépense ajoutée avec succès.',
+            'message' => 'Frais ajouté avec succès.',
             'expense' => $expense,
         ], 201);
     }
@@ -65,7 +65,7 @@ class CarExpenseController extends Controller
         $expense->update($validated);
 
         return response()->json([
-            'message' => 'Dépense mise à jour avec succès.',
+            'message' => 'Frais mis à jour avec succès.',
             'expense' => $expense,
         ]);
     }
@@ -76,7 +76,7 @@ class CarExpenseController extends Controller
         $expense->delete();
 
         return response()->json([
-            'message' => 'Dépense supprimée avec succès.',
+            'message' => 'Frais supprimé avec succès.',
         ]);
     }
 }

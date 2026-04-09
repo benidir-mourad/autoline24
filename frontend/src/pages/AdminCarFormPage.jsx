@@ -1,8 +1,21 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmDialog from "../components/ConfirmDialog";
 import api from "../services/api";
 import "../styles/admin.css";
+
+const suggestedExpenseTypes = [
+    "Entretien",
+    "Vidange",
+    "Pneus",
+    "Freins",
+    "Distribution",
+    "Contrôle technique",
+    "Préparation",
+    "Nettoyage",
+    "Carte grise",
+    "Transport",
+];
 
 const initialForm = {
     brand: "",
@@ -29,26 +42,57 @@ const initialForm = {
     reference: "",
 };
 
+const initialExpenseForm = {
+    expense_type: suggestedExpenseTypes[0],
+    amount: "",
+    expense_date: new Date().toISOString().slice(0, 10),
+    description: "",
+};
+
+function formatCurrency(value) {
+    return new Intl.NumberFormat("fr-BE", {
+        style: "currency",
+        currency: "EUR",
+        maximumFractionDigits: 2,
+    }).format(Number(value || 0));
+}
+
+function formatDate(value) {
+    if (!value) return "Date non renseignée";
+
+    return new Intl.DateTimeFormat("fr-BE", {
+        dateStyle: "medium",
+    }).format(new Date(value));
+}
+
 export default function AdminCarFormPage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const isEdit = Boolean(id);
+    const fileInputRef = useRef(null);
 
     const [form, setForm] = useState(initialForm);
+    const [carSummary, setCarSummary] = useState(null);
     const [images, setImages] = useState([]);
+    const [expenses, setExpenses] = useState([]);
     const [options, setOptions] = useState([]);
     const [selectedOptionIds, setSelectedOptionIds] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [isDragOver, setIsDragOver] = useState(false);
     const [newOptionName, setNewOptionName] = useState("");
+    const [expenseForm, setExpenseForm] = useState(initialExpenseForm);
 
     const [loading, setLoading] = useState(false);
     const [imageLoading, setImageLoading] = useState(false);
     const [optionsLoading, setOptionsLoading] = useState(false);
     const [optionCreateLoading, setOptionCreateLoading] = useState(false);
+    const [expensesLoading, setExpensesLoading] = useState(false);
+    const [expenseCreateLoading, setExpenseCreateLoading] = useState(false);
     const [optionCreateMessage, setOptionCreateMessage] = useState("");
     const [optionCreateError, setOptionCreateError] = useState("");
     const [formFeedback, setFormFeedback] = useState({ type: "", message: "" });
     const [imageFeedback, setImageFeedback] = useState({ type: "", message: "" });
+    const [expenseFeedback, setExpenseFeedback] = useState({ type: "", message: "" });
     const [confirmState, setConfirmState] = useState({
         open: false,
         type: "",
@@ -57,6 +101,37 @@ export default function AdminCarFormPage() {
         message: "",
     });
     const [confirmLoading, setConfirmLoading] = useState(false);
+
+    const previewUrl = useMemo(() => {
+        if (!selectedFile) return "";
+        return URL.createObjectURL(selectedFile);
+    }, [selectedFile]);
+
+    const financialSummary = useMemo(() => {
+        const purchasePrice = Number(carSummary?.purchase_price ?? form.purchase_price ?? 0);
+        const salePrice = Number(carSummary?.price ?? form.price ?? 0);
+        const totalExpenses = Number(carSummary?.total_expenses ?? 0);
+        const totalInvestment =
+            Number(carSummary?.total_investment ?? purchasePrice + totalExpenses);
+        const estimatedMargin =
+            Number(carSummary?.estimated_margin ?? salePrice - totalInvestment);
+
+        return {
+            purchasePrice,
+            salePrice,
+            totalExpenses,
+            totalInvestment,
+            estimatedMargin,
+        };
+    }, [carSummary, form.price, form.purchase_price]);
+
+    useEffect(() => {
+        return () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        };
+    }, [previewUrl]);
 
     function setScopedFeedback(setter, type, message) {
         setter({ type, message });
@@ -68,6 +143,7 @@ export default function AdminCarFormPage() {
             const response = await api.get(`/admin/cars/${id}`);
             const car = response.data;
 
+            setCarSummary(car);
             setForm({
                 brand: car.brand || "",
                 model: car.model || "",
@@ -86,7 +162,7 @@ export default function AdminCarFormPage() {
                 color: car.color || "",
                 body_type: car.body_type || "",
                 first_registration_date: car.first_registration_date
-                    ? String(car.first_registration_date).substring(0, 10)
+                    ? String(car.first_registration_date).slice(0, 10)
                     : "",
                 description: car.description || "",
                 status: car.status || "available",
@@ -111,6 +187,36 @@ export default function AdminCarFormPage() {
         }
     }, [id]);
 
+    const fetchExpenses = useCallback(async () => {
+        try {
+            setExpensesLoading(true);
+            const response = await api.get(`/admin/cars/${id}/expenses`);
+            const totalExpenses = Number(response.data.total_expenses ?? 0);
+
+            setExpenses(response.data.expenses ?? []);
+            setCarSummary((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          total_expenses: totalExpenses,
+                          total_investment: Number(prev.purchase_price ?? 0) + totalExpenses,
+                          estimated_margin:
+                              Number(prev.price ?? 0) -
+                              (Number(prev.purchase_price ?? 0) + totalExpenses),
+                      }
+                    : prev
+            );
+        } catch (error) {
+            console.error("Erreur lors du chargement des frais :", error);
+            setScopedFeedback(
+                setExpenseFeedback,
+                "error",
+                "Impossible de charger les frais de ce véhicule."
+            );
+        } finally {
+            setExpensesLoading(false);
+        }
+    }, [id]);
     const fetchAllOptions = useCallback(async () => {
         try {
             const response = await api.get("/admin/options");
@@ -126,7 +232,7 @@ export default function AdminCarFormPage() {
             const carOptions = response.data.options ?? [];
             setSelectedOptionIds(carOptions.map((option) => String(option.id)));
         } catch (error) {
-            console.error("Erreur lors du chargement des options de la voiture :", error);
+            console.error("Erreur lors du chargement des options du véhicule :", error);
         }
     }, [id]);
 
@@ -137,8 +243,9 @@ export default function AdminCarFormPage() {
             fetchCar();
             fetchImages();
             fetchCarOptions();
+            fetchExpenses();
         }
-    }, [fetchAllOptions, fetchCar, fetchCarOptions, fetchImages, isEdit]);
+    }, [fetchAllOptions, fetchCar, fetchCarOptions, fetchExpenses, fetchImages, isEdit]);
 
     function handleChange(event) {
         const { name, value, type, checked } = event.target;
@@ -149,9 +256,51 @@ export default function AdminCarFormPage() {
         }));
     }
 
+    function handleExpenseChange(event) {
+        const { name, value } = event.target;
+
+        setExpenseForm((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+    }
+
+    function updateSelectedFile(file) {
+        if (!file) return;
+
+        setSelectedFile(file);
+        setScopedFeedback(setImageFeedback, "", "");
+        setIsDragOver(false);
+    }
+
     function handleFileChange(event) {
         const file = event.target.files?.[0] || null;
-        setSelectedFile(file);
+        updateSelectedFile(file);
+    }
+
+    function handleDrop(event) {
+        event.preventDefault();
+        const file = event.dataTransfer.files?.[0] || null;
+        updateSelectedFile(file);
+    }
+
+    function handleDragOver(event) {
+        event.preventDefault();
+        setIsDragOver(true);
+    }
+
+    function handleDragLeave(event) {
+        event.preventDefault();
+        setIsDragOver(false);
+    }
+
+    function clearSelectedFile() {
+        setSelectedFile(null);
+        setIsDragOver(false);
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
     }
 
     function handleOptionToggle(optionId) {
@@ -179,7 +328,8 @@ export default function AdminCarFormPage() {
             let carId = id;
 
             if (isEdit) {
-                await api.put(`/admin/cars/${id}`, payload);
+                const response = await api.put(`/admin/cars/${id}`, payload);
+                setCarSummary(response.data.car ?? null);
             } else {
                 const response = await api.post("/admin/cars", payload);
                 carId = response.data.car.id;
@@ -234,10 +384,10 @@ export default function AdminCarFormPage() {
             setNewOptionName("");
             setOptionCreateMessage("Option créée et sélectionnée.");
         } catch (error) {
-            console.error("Erreur lors de la creation de l'option :", error);
+            console.error("Erreur lors de la création de l'option :", error);
             setOptionCreateMessage("");
             setOptionCreateError(
-                error.response?.data?.message || "Impossible de creer cette option."
+                error.response?.data?.message || "Impossible de créer cette option."
             );
         } finally {
             setOptionCreateLoading(false);
@@ -264,6 +414,83 @@ export default function AdminCarFormPage() {
         }
     }
 
+    async function handleSaveOptionsOnly() {
+        if (!id) return;
+
+        try {
+            setOptionsLoading(true);
+            setOptionCreateError("");
+            setOptionCreateMessage("");
+
+            await api.put(`/admin/cars/${id}/options`, {
+                option_ids: selectedOptionIds.map((optionId) => Number(optionId)),
+            });
+
+            setOptionCreateMessage("Options mises à jour avec succès.");
+        } catch (error) {
+            console.error(error);
+            setOptionCreateError(
+                error.response?.data?.message || "Erreur lors de la mise à jour des options."
+            );
+        } finally {
+            setOptionsLoading(false);
+        }
+    }
+    async function handleCreateExpense(event) {
+        event.preventDefault();
+
+        if (!id) return;
+
+        try {
+            setExpenseCreateLoading(true);
+            setScopedFeedback(setExpenseFeedback, "", "");
+
+            await api.post(`/admin/cars/${id}/expenses`, {
+                ...expenseForm,
+                amount: Number(expenseForm.amount),
+            });
+
+            setExpenseForm((prev) => ({
+                ...initialExpenseForm,
+                expense_type: prev.expense_type || initialExpenseForm.expense_type,
+            }));
+            await fetchCar();
+            await fetchExpenses();
+            setScopedFeedback(setExpenseFeedback, "success", "Frais ajouté avec succès.");
+        } catch (error) {
+            console.error("Erreur lors de l'ajout du frais :", error);
+            setScopedFeedback(
+                setExpenseFeedback,
+                "error",
+                error.response?.data?.message || "Impossible d'ajouter ce frais."
+            );
+        } finally {
+            setExpenseCreateLoading(false);
+        }
+    }
+
+    async function handleDeleteExpense(expenseId) {
+        try {
+            setConfirmLoading(true);
+            setScopedFeedback(setExpenseFeedback, "", "");
+            await api.delete(`/admin/expenses/${expenseId}`);
+            setExpenses((prev) => prev.filter((expense) => expense.id !== expenseId));
+            await fetchCar();
+            await fetchExpenses();
+            setScopedFeedback(setExpenseFeedback, "success", "Frais supprimé.");
+            setConfirmState({ open: false, type: "", id: null, title: "", message: "" });
+        } catch (error) {
+            console.error("Erreur lors de la suppression du frais :", error);
+            setScopedFeedback(
+                setExpenseFeedback,
+                "error",
+                error.response?.data?.message || "Impossible de supprimer ce frais."
+            );
+        } finally {
+            setConfirmLoading(false);
+        }
+    }
+
     async function handleImageUpload() {
         if (!selectedFile || !id) return;
 
@@ -282,7 +509,7 @@ export default function AdminCarFormPage() {
                 },
             });
 
-            setSelectedFile(null);
+            clearSelectedFile();
             await fetchImages();
             setScopedFeedback(setImageFeedback, "success", "Image ajoutée avec succès.");
         } catch (error) {
@@ -308,7 +535,8 @@ export default function AdminCarFormPage() {
             setScopedFeedback(
                 setImageFeedback,
                 "error",
-                error.response?.data?.message || "Erreur lors du changement d'image principale."
+                error.response?.data?.message ||
+                    "Erreur lors du changement d'image principale."
             );
         }
     }
@@ -353,6 +581,18 @@ export default function AdminCarFormPage() {
         });
     }
 
+    function openDeleteExpenseConfirm(expense) {
+        setConfirmState({
+            open: true,
+            type: "expense",
+            id: expense.id,
+            title: "Supprimer ce frais ?",
+            message: `Le frais "${expense.expense_type}" du ${formatDate(
+                expense.expense_date
+            )} sera supprimé.`,
+        });
+    }
+
     function closeConfirmDialog() {
         if (confirmLoading) return;
 
@@ -367,29 +607,11 @@ export default function AdminCarFormPage() {
 
         if (confirmState.type === "image") {
             handleDeleteImage(confirmState.id);
+            return;
         }
-    }
 
-    async function handleSaveOptionsOnly() {
-        if (!id) return;
-
-        try {
-            setOptionsLoading(true);
-            setOptionCreateError("");
-            setOptionCreateMessage("");
-
-            await api.put(`/admin/cars/${id}/options`, {
-                option_ids: selectedOptionIds.map((optionId) => Number(optionId)),
-            });
-
-            setOptionCreateMessage("Options mises à jour avec succès.");
-        } catch (error) {
-            console.error(error);
-            setOptionCreateError(
-                error.response?.data?.message || "Erreur lors de la mise a jour des options."
-            );
-        } finally {
-            setOptionsLoading(false);
+        if (confirmState.type === "expense") {
+            handleDeleteExpense(confirmState.id);
         }
     }
 
@@ -400,7 +622,6 @@ export default function AdminCarFormPage() {
             </main>
         );
     }
-
     return (
         <main className="page admin-page">
             <h1>{isEdit ? "Modifier une voiture" : "Ajouter une voiture"}</h1>
@@ -411,13 +632,166 @@ export default function AdminCarFormPage() {
                 </p>
             )}
 
+            {isEdit && (
+                <>
+                    <section className="admin-summary-section">
+                        <div className="admin-summary-card">
+                            <span>Prix d'achat</span>
+                            <strong>{formatCurrency(financialSummary.purchasePrice)}</strong>
+                        </div>
+                        <div className="admin-summary-card">
+                            <span>Total des frais</span>
+                            <strong>{formatCurrency(financialSummary.totalExpenses)}</strong>
+                        </div>
+                        <div className="admin-summary-card">
+                            <span>Investissement total</span>
+                            <strong>{formatCurrency(financialSummary.totalInvestment)}</strong>
+                        </div>
+                        <div
+                            className={`admin-summary-card ${
+                                financialSummary.estimatedMargin >= 0
+                                    ? "is-positive"
+                                    : "is-negative"
+                            }`}
+                        >
+                            <span>Marge estimée</span>
+                            <strong>{formatCurrency(financialSummary.estimatedMargin)}</strong>
+                        </div>
+                    </section>
+
+                    <section className="admin-expenses-section">
+                        <div className="admin-expenses-section__header">
+                            <div>
+                                <h2>Suivi des frais</h2>
+                                <p>
+                                    Suivez les dépenses liées à cette voiture pour garder une vue
+                                    claire sur le coût réel.
+                                </p>
+                            </div>
+                        </div>
+
+                        {expenseFeedback.message && (
+                            <p className={`admin-feedback admin-feedback--${expenseFeedback.type}`}>
+                                {expenseFeedback.message}
+                            </p>
+                        )}
+
+                        <form className="admin-expense-form" onSubmit={handleCreateExpense}>
+                            <select
+                                name="expense_type"
+                                value={expenseForm.expense_type}
+                                onChange={handleExpenseChange}
+                            >
+                                {suggestedExpenseTypes.map((expenseType) => (
+                                    <option key={expenseType} value={expenseType}>
+                                        {expenseType}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                name="amount"
+                                placeholder="Montant"
+                                value={expenseForm.amount}
+                                onChange={handleExpenseChange}
+                                required
+                            />
+
+                            <input
+                                type="date"
+                                name="expense_date"
+                                value={expenseForm.expense_date}
+                                onChange={handleExpenseChange}
+                                required
+                            />
+
+                            <input
+                                type="text"
+                                name="description"
+                                placeholder="Description ou note"
+                                value={expenseForm.description}
+                                onChange={handleExpenseChange}
+                            />
+
+                            <button
+                                type="submit"
+                                className="admin-button"
+                                disabled={expenseCreateLoading}
+                            >
+                                {expenseCreateLoading ? "Ajout..." : "Ajouter le frais"}
+                            </button>
+                        </form>
+
+                        <div className="admin-expense-suggestions">
+                            {suggestedExpenseTypes.map((expenseType) => (
+                                <button
+                                    key={expenseType}
+                                    type="button"
+                                    className={`admin-chip ${
+                                        expenseForm.expense_type === expenseType ? "is-active" : ""
+                                    }`}
+                                    onClick={() =>
+                                        setExpenseForm((prev) => ({
+                                            ...prev,
+                                            expense_type: expenseType,
+                                        }))
+                                    }
+                                >
+                                    {expenseType}
+                                </button>
+                            ))}
+                        </div>
+
+                        {expensesLoading ? (
+                            <p>Chargement des frais...</p>
+                        ) : expenses.length > 0 ? (
+                            <div className="admin-expenses-list">
+                                {expenses.map((expense) => (
+                                    <article key={expense.id} className="admin-expense-card">
+                                        <div className="admin-expense-card__top">
+                                            <div>
+                                                <h3>{expense.expense_type}</h3>
+                                                <p>{formatDate(expense.expense_date)}</p>
+                                            </div>
+
+                                            <strong>{formatCurrency(expense.amount)}</strong>
+                                        </div>
+
+                                        {expense.description && (
+                                            <p className="admin-expense-card__description">
+                                                {expense.description}
+                                            </p>
+                                        )}
+
+                                        <div className="admin-expense-card__actions">
+                                            <button
+                                                type="button"
+                                                className="admin-link admin-link--danger"
+                                                onClick={() => openDeleteExpenseConfirm(expense)}
+                                            >
+                                                Supprimer
+                                            </button>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        ) : (
+                            <p>Aucun frais ajouté pour le moment.</p>
+                        )}
+                    </section>
+                </>
+            )}
+
             <form className="admin-form" onSubmit={handleSubmit}>
                 <input name="brand" placeholder="Marque" value={form.brand} onChange={handleChange} />
                 <input name="model" placeholder="Modèle" value={form.model} onChange={handleChange} />
                 <input name="version" placeholder="Version" value={form.version} onChange={handleChange} />
                 <input name="year" type="number" placeholder="Année" value={form.year} onChange={handleChange} />
                 <input name="mileage" type="number" placeholder="Kilométrage" value={form.mileage} onChange={handleChange} />
-                <input name="price" type="number" placeholder="Prix" value={form.price} onChange={handleChange} />
+                <input name="price" type="number" placeholder="Prix de vente" value={form.price} onChange={handleChange} />
                 <input name="purchase_price" type="number" placeholder="Prix d'achat" value={form.purchase_price} onChange={handleChange} />
 
                 <select name="fuel_type" value={form.fuel_type} onChange={handleChange}>
@@ -477,7 +851,6 @@ export default function AdminCarFormPage() {
                     </button>
                 </div>
             </form>
-
             <section className="admin-options-section">
                 <div className="admin-options-section__header">
                     <h2>Options</h2>
@@ -545,7 +918,12 @@ export default function AdminCarFormPage() {
 
             {isEdit && (
                 <section className="admin-images-section">
-                    <h2>Images</h2>
+                    <div className="admin-images-section__header">
+                        <div>
+                            <h2>Images</h2>
+                            <p>Glissez une image ici ou cliquez pour en sélectionner une.</p>
+                        </div>
+                    </div>
 
                     {imageFeedback.message && (
                         <p className={`admin-feedback admin-feedback--${imageFeedback.type}`}>
@@ -553,48 +931,107 @@ export default function AdminCarFormPage() {
                         </p>
                     )}
 
-                    <div className="admin-images-upload">
-                        <input type="file" accept="image/*" onChange={handleFileChange} />
-                        <button
-                            type="button"
-                            className="admin-button"
-                            onClick={handleImageUpload}
-                            disabled={!selectedFile || imageLoading}
-                        >
-                            {imageLoading ? "Upload..." : "Ajouter l'image"}
-                        </button>
-                    </div>
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="admin-images-input"
+                    />
+
+                    <button
+                        type="button"
+                        className={`admin-upload-dropzone ${isDragOver ? "is-dragover" : ""}`}
+                        onClick={() => fileInputRef.current?.click()}
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                    >
+                        <span className="admin-upload-dropzone__icon">+</span>
+                        <strong>Déposer une image</strong>
+                        <span>ou cliquer pour parcourir</span>
+                    </button>
+
+                    {selectedFile && (
+                        <div className="admin-upload-preview">
+                            <img
+                                src={previewUrl}
+                                alt="Aperçu avant upload"
+                                className="admin-upload-preview__image"
+                            />
+
+                            <div className="admin-upload-preview__content">
+                                <h3>{selectedFile.name}</h3>
+                                <p>{Math.round(selectedFile.size / 1024)} Ko</p>
+
+                                <div className="admin-upload-preview__actions">
+                                    <button
+                                        type="button"
+                                        className="admin-button"
+                                        onClick={handleImageUpload}
+                                        disabled={imageLoading}
+                                    >
+                                        {imageLoading ? "Upload..." : "Envoyer l'image"}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="admin-button admin-button--secondary"
+                                        onClick={clearSelectedFile}
+                                        disabled={imageLoading}
+                                    >
+                                        Retirer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {images.length > 0 ? (
                         <div className="admin-images-grid">
                             {images.map((image) => (
-                                <div key={image.id} className="admin-image-card">
+                                <div
+                                    key={image.id}
+                                    className={`admin-image-card ${image.is_main ? "is-main" : ""}`}
+                                >
                                     <img
                                         src={image.image_url}
                                         alt="Voiture"
                                         className="admin-image-card__img"
                                     />
 
-                                    <div className="admin-image-card__actions">
-                                        {image.is_main ? (
-                                            <span className="admin-image-card__badge">Principale</span>
-                                        ) : (
+                                    <div className="admin-image-card__content">
+                                        <div className="admin-image-card__meta">
+                                            {image.is_main ? (
+                                                <span className="admin-image-card__badge">
+                                                    Image principale
+                                                </span>
+                                            ) : (
+                                                <span className="admin-image-card__hint">
+                                                    Image secondaire
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="admin-image-card__actions">
+                                            {!image.is_main && (
+                                                <button
+                                                    type="button"
+                                                    className="admin-link"
+                                                    onClick={() => handleSetMain(image.id)}
+                                                >
+                                                    Définir principale
+                                                </button>
+                                            )}
+
                                             <button
                                                 type="button"
-                                                className="admin-link"
-                                                onClick={() => handleSetMain(image.id)}
+                                                className="admin-link admin-link--danger"
+                                                onClick={() => openDeleteImageConfirm(image)}
                                             >
-                                                Définir principale
+                                                Supprimer
                                             </button>
-                                        )}
-
-                                        <button
-                                            type="button"
-                                            className="admin-link admin-link--danger"
-                                            onClick={() => openDeleteImageConfirm(image)}
-                                        >
-                                            Supprimer
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
