@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import ConfirmDialog from "../components/ConfirmDialog";
 import api from "../services/api";
 import "../styles/admin.css";
@@ -74,6 +74,15 @@ function formatDate(value) {
     }).format(new Date(value));
 }
 
+function downloadBlob(blob, filename) {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    window.URL.revokeObjectURL(url);
+}
+
 export default function AdminCarFormPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -104,6 +113,7 @@ export default function AdminCarFormPage() {
     const [formFeedback, setFormFeedback] = useState({ type: "", message: "" });
     const [imageFeedback, setImageFeedback] = useState({ type: "", message: "" });
     const [expenseFeedback, setExpenseFeedback] = useState({ type: "", message: "" });
+    const [expenseExportLoading, setExpenseExportLoading] = useState(false);
     const [confirmState, setConfirmState] = useState({
         open: false,
         type: "",
@@ -389,6 +399,19 @@ export default function AdminCarFormPage() {
                 });
             }
 
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append("image", selectedFile);
+                formData.append("is_main", "1");
+                formData.append("sort_order", "0");
+
+                await api.post(`/admin/cars/${carId}/images`, formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
+            }
+
             navigate("/admin/cars");
         } catch (error) {
             console.error(error);
@@ -547,6 +570,27 @@ export default function AdminCarFormPage() {
         window.print();
     }
 
+    async function handleExportExpenses() {
+        if (!id) return;
+
+        try {
+            setExpenseExportLoading(true);
+            const response = await api.get(`/admin/exports/cars/${id}/expenses`, {
+                responseType: "blob",
+            });
+            downloadBlob(response.data, `autoline24-voiture-${id}-frais.csv`);
+        } catch (error) {
+            console.error("Erreur lors de l'export des frais :", error);
+            setScopedFeedback(
+                setExpenseFeedback,
+                "error",
+                "Impossible d'exporter les frais de ce véhicule."
+            );
+        } finally {
+            setExpenseExportLoading(false);
+        }
+    }
+
     async function handleDeleteExpense(expenseId) {
         try {
             setConfirmLoading(true);
@@ -702,6 +746,15 @@ export default function AdminCarFormPage() {
     }
     return (
         <main className="page admin-page">
+            <div className="page-backlinks admin-print-hidden">
+                <button type="button" className="page-link-button" onClick={() => navigate(-1)}>
+                    Retour
+                </button>
+                <Link to="/admin/cars">Retour à la liste admin</Link>
+                <Link to="/admin/settings">Paramètres contact</Link>
+                <Link to="/cars">Voir le site</Link>
+            </div>
+
             <div className="admin-page__header admin-page__header--stacked">
                 <div>
                     <h1>{isEdit ? "Modifier une voiture" : "Ajouter une voiture"}</h1>
@@ -716,6 +769,15 @@ export default function AdminCarFormPage() {
 
                 {isEdit && (
                     <div className="admin-page__actions admin-print-hidden">
+                        <button
+                            type="button"
+                            className="admin-button admin-button--secondary"
+                            onClick={handleExportExpenses}
+                            disabled={expenseExportLoading}
+                        >
+                            {expenseExportLoading ? "Export..." : "Exporter les frais"}
+                        </button>
+
                         <button
                             type="button"
                             className="admin-button admin-button--secondary"
@@ -1164,12 +1226,15 @@ export default function AdminCarFormPage() {
                 )}
             </section>
 
-            {isEdit && (
-                <section className="admin-images-section">
+            <section className="admin-images-section">
                     <div className="admin-images-section__header">
                         <div>
                             <h2>Images</h2>
-                            <p>Glissez une image ici ou cliquez pour en sélectionner une.</p>
+                            <p>
+                                {isEdit
+                                    ? "Glissez une image ici ou cliquez pour en sélectionner une."
+                                    : "Ajoutez déjà une image principale. Elle sera envoyée juste après la création de la voiture."}
+                            </p>
                         </div>
                     </div>
 
@@ -1213,14 +1278,20 @@ export default function AdminCarFormPage() {
                                 <p>{Math.round(selectedFile.size / 1024)} Ko</p>
 
                                 <div className="admin-upload-preview__actions">
-                                    <button
-                                        type="button"
-                                        className="admin-button"
-                                        onClick={handleImageUpload}
-                                        disabled={imageLoading}
-                                    >
-                                        {imageLoading ? "Upload..." : "Envoyer l'image"}
-                                    </button>
+                                    {isEdit ? (
+                                        <button
+                                            type="button"
+                                            className="admin-button"
+                                            onClick={handleImageUpload}
+                                            disabled={imageLoading}
+                                        >
+                                            {imageLoading ? "Upload..." : "Envoyer l'image"}
+                                        </button>
+                                    ) : (
+                                        <span className="admin-upload-preview__hint">
+                                            Cette image sera envoyée après l’enregistrement.
+                                        </span>
+                                    )}
 
                                     <button
                                         type="button"
@@ -1235,7 +1306,7 @@ export default function AdminCarFormPage() {
                         </div>
                     )}
 
-                    {images.length > 0 ? (
+                    {isEdit && images.length > 0 ? (
                         <div className="admin-images-grid">
                             {images.map((image) => (
                                 <div
@@ -1285,10 +1356,13 @@ export default function AdminCarFormPage() {
                             ))}
                         </div>
                     ) : (
-                        <p>Aucune image ajoutée.</p>
+                        <p>
+                            {isEdit
+                                ? "Aucune image ajoutée."
+                                : "Aucune image préparée pour le moment."}
+                        </p>
                     )}
                 </section>
-            )}
 
             <ConfirmDialog
                 open={confirmState.open}

@@ -226,6 +226,17 @@
     color: #6b7280;
 }
 
+.admin-upload-preview__hint {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #ecfeff;
+    color: #0f766e;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
 .admin-upload-preview__actions {
     display: flex;
     gap: 10px;

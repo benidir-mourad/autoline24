@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import CarCard from "../components/CarCard";
 import FilterBar from "../components/FilterBar";
+import { useSiteSettings } from "../hooks/useSiteSettings";
 import "../styles/cars.css";
 
 function getInitialFilters(searchParams) {
@@ -26,6 +27,7 @@ function getInitialPage(searchParams) {
 
 export default function CarsPage() {
     const [searchParams, setSearchParams] = useSearchParams();
+    const { contactSettings } = useSiteSettings();
 
     const [cars, setCars] = useState([]);
     const [options, setOptions] = useState([]);
@@ -94,29 +96,34 @@ export default function CarsPage() {
         }
     }, []);
 
-    const updateUrlFromState = useCallback((currentFilters, currentPage = 1) => {
-        const params = new URLSearchParams();
+    const updateUrlFromState = useCallback(
+        (currentFilters, currentPage = 1) => {
+            const params = new URLSearchParams();
 
-        if (currentFilters.search) params.set("search", currentFilters.search);
-        if (currentFilters.brand) params.set("brand", currentFilters.brand);
-        if (currentFilters.min_price) params.set("min_price", currentFilters.min_price);
-        if (currentFilters.max_price) params.set("max_price", currentFilters.max_price);
-        if (currentFilters.min_year) params.set("min_year", currentFilters.min_year);
-        if (currentFilters.max_mileage) params.set("max_mileage", currentFilters.max_mileage);
-        if (currentFilters.fuel_type) params.set("fuel_type", currentFilters.fuel_type);
-        if (currentFilters.sort) params.set("sort", currentFilters.sort);
-        if (currentFilters.per_page) params.set("per_page", currentFilters.per_page);
+            if (currentFilters.search) params.set("search", currentFilters.search);
+            if (currentFilters.brand) params.set("brand", currentFilters.brand);
+            if (currentFilters.min_price) params.set("min_price", currentFilters.min_price);
+            if (currentFilters.max_price) params.set("max_price", currentFilters.max_price);
+            if (currentFilters.min_year) params.set("min_year", currentFilters.min_year);
+            if (currentFilters.max_mileage) {
+                params.set("max_mileage", currentFilters.max_mileage);
+            }
+            if (currentFilters.fuel_type) params.set("fuel_type", currentFilters.fuel_type);
+            if (currentFilters.sort) params.set("sort", currentFilters.sort);
+            if (currentFilters.per_page) params.set("per_page", currentFilters.per_page);
 
-        currentFilters.option_ids.forEach((id) => {
-            params.append("option_ids", id);
-        });
+            currentFilters.option_ids.forEach((id) => {
+                params.append("option_ids", id);
+            });
 
-        if (currentPage > 1) {
-            params.set("page", String(currentPage));
-        }
+            if (currentPage > 1) {
+                params.set("page", String(currentPage));
+            }
 
-        setSearchParams(params, { replace: true });
-    }, [setSearchParams]);
+            setSearchParams(params, { replace: true });
+        },
+        [setSearchParams]
+    );
 
     useEffect(() => {
         fetchOptions();
@@ -211,8 +218,18 @@ export default function CarsPage() {
     return (
         <main className="page cars-page">
             <div className="cars-page__header">
-                <h1>Nos voitures</h1>
-                <p>Découvrez notre sélection de véhicules d’occasion disponibles.</p>
+                <div>
+                    <h1>Nos voitures</h1>
+                    <p>Découvrez notre sélection de véhicules d'occasion disponibles.</p>
+                </div>
+
+                <div className="cars-page__contact-card">
+                    <span>Besoin d'un renseignement ?</span>
+                    <a href={`tel:${contactSettings.contact_phone}`}>
+                        {contactSettings.contact_phone}
+                    </a>
+                    <Link to="/contact">Contacter le vendeur</Link>
+                </div>
             </div>
 
             <FilterBar
@@ -237,7 +254,13 @@ export default function CarsPage() {
             {!loading && (
                 <section className="cars-grid">
                     {cars.length > 0 ? (
-                        cars.map((car) => <CarCard key={car.id} car={car} />)
+                        cars.map((car) => (
+                            <CarCard
+                                key={car.id}
+                                car={car}
+                                contactSettings={contactSettings}
+                            />
+                        ))
                     ) : (
                         <div className="cars-page__empty">
                             <p>Aucune voiture ne correspond à votre recherche.</p>

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import "../styles/card.css";
 
-export default function CarCard({ car }) {
+export default function CarCard({ car, contactSettings }) {
     const mainImage =
         car.main_image?.image_url ||
         car.images?.[0]?.image_url ||
@@ -42,9 +42,27 @@ export default function CarCard({ car }) {
 
                 <p className="car-card__price">{formattedPrice}</p>
 
-                <Link to={`/cars/${car.id}`} className="car-card__button">
-                    Voir le détail
-                </Link>
+                <div className="car-card__contact">
+                    <a href={`tel:${contactSettings.contact_phone}`}>
+                        {contactSettings.contact_phone}
+                    </a>
+                    <a href={`mailto:${contactSettings.contact_email}`}>
+                        {contactSettings.contact_email}
+                    </a>
+                </div>
+
+                <div className="car-card__actions">
+                    <Link to={`/cars/${car.id}`} className="car-card__button">
+                        Voir le détail
+                    </Link>
+
+                    <Link
+                        to="/contact"
+                        className="car-card__button car-card__button--secondary"
+                    >
+                        Contacter le vendeur
+                    </Link>
+                </div>
             </div>
         </article>
     );

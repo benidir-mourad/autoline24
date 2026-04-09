@@ -17,12 +17,11 @@ class AuthController extends Controller
 
         if (!Auth::attempt($validated)) {
             return response()->json([
-                'message' => 'Identifiants invalides.'
+                'message' => 'Identifiants invalides.',
             ], 401);
         }
 
         $user = Auth::user();
-
         $token = $user->createToken('admin-token')->plainTextToken;
 
         return response()->json([
@@ -42,7 +41,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Déconnexion réussie.'
+            'message' => 'Déconnexion réussie.',
         ]);
     }
 }

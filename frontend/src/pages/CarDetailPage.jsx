@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
+import { useSiteSettings } from "../hooks/useSiteSettings";
 import "../styles/car-detail.css";
 
 export default function CarDetailPage() {
     const { id } = useParams();
+    const navigate = useNavigate();
+    const { contactSettings } = useSiteSettings();
     const [car, setCar] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState("");
@@ -17,11 +20,7 @@ export default function CarDetailPage() {
 
             setCar(carData);
 
-            const firstImage =
-                carData?.main_image?.image_url ||
-                carData?.images?.[0]?.image_url ||
-                "";
-
+            const firstImage = carData?.main_image?.image_url || carData?.images?.[0]?.image_url || "";
             setSelectedImage(firstImage);
         } catch (error) {
             console.error("Erreur lors du chargement de la voiture :", error);
@@ -37,10 +36,7 @@ export default function CarDetailPage() {
     function goToNext() {
         if (!car?.images?.length) return;
 
-        const currentIndex = car.images.findIndex(
-            (img) => img.image_url === selectedImage
-        );
-
+        const currentIndex = car.images.findIndex((img) => img.image_url === selectedImage);
         const nextIndex = (currentIndex + 1) % car.images.length;
         setSelectedImage(car.images[nextIndex].image_url);
     }
@@ -48,10 +44,7 @@ export default function CarDetailPage() {
     function goToPrev() {
         if (!car?.images?.length) return;
 
-        const currentIndex = car.images.findIndex(
-            (img) => img.image_url === selectedImage
-        );
-
+        const currentIndex = car.images.findIndex((img) => img.image_url === selectedImage);
         const prevIndex = (currentIndex - 1 + car.images.length) % car.images.length;
         setSelectedImage(car.images[prevIndex].image_url);
     }
@@ -82,6 +75,14 @@ export default function CarDetailPage() {
 
     return (
         <main className="page car-detail">
+            <div className="page-backlinks">
+                <button type="button" className="page-link-button" onClick={() => navigate(-1)}>
+                    Retour
+                </button>
+                <Link to="/cars">Retour à la liste</Link>
+                <Link to="/contact">Contacter le vendeur</Link>
+            </div>
+
             <section className="car-detail__top">
                 <div className="car-detail__gallery">
                     {selectedImage ? (
@@ -154,6 +155,16 @@ export default function CarDetailPage() {
                     {car.version && <p className="car-detail__version">{car.version}</p>}
 
                     <p className="car-detail__price">{formattedPrice}</p>
+
+                    <div className="car-detail__contact-panel">
+                        <a href={`tel:${contactSettings.contact_phone}`}>
+                            {contactSettings.contact_phone}
+                        </a>
+                        <a href={`mailto:${contactSettings.contact_email}`}>
+                            {contactSettings.contact_email}
+                        </a>
+                        <p>{contactSettings.contact_address}</p>
+                    </div>
 
                     <div className="car-detail__specs">
                         <div className="car-detail__spec">

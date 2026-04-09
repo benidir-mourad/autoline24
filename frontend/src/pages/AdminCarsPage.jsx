@@ -5,6 +5,15 @@ import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import "../styles/admin.css";
 
+function downloadBlob(blob, filename) {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    window.URL.revokeObjectURL(url);
+}
+
 export default function AdminCarsPage() {
     const navigate = useNavigate();
     const { logout } = useAuth();
@@ -13,6 +22,7 @@ export default function AdminCarsPage() {
     const [feedback, setFeedback] = useState({ type: "", message: "" });
     const [carToDelete, setCarToDelete] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [exportLoading, setExportLoading] = useState(false);
 
     const fetchCars = useCallback(async () => {
         try {
@@ -52,6 +62,24 @@ export default function AdminCarsPage() {
         }
     }
 
+    async function handleExportCars() {
+        try {
+            setExportLoading(true);
+            const response = await api.get("/admin/exports/cars", {
+                responseType: "blob",
+            });
+            downloadBlob(response.data, "autoline24-voitures.csv");
+        } catch (error) {
+            console.error("Erreur lors de l'export des voitures :", error);
+            setFeedback({
+                type: "error",
+                message: "Impossible d'exporter les voitures.",
+            });
+        } finally {
+            setExportLoading(false);
+        }
+    }
+
     async function handleLogout() {
         await logout();
         navigate("/admin/login", { replace: true });
@@ -59,16 +87,38 @@ export default function AdminCarsPage() {
 
     return (
         <main className="page admin-page">
+            <div className="page-backlinks admin-print-hidden">
+                <Link to="/cars">Retour au site</Link>
+            </div>
+
             {feedback.message && (
                 <p className={`admin-feedback admin-feedback--${feedback.type}`}>
                     {feedback.message}
                 </p>
             )}
 
-            <div className="admin-page__header">
-                <h1>Administration - Voitures</h1>
+            <div className="admin-page__header admin-page__header--stacked">
+                <div>
+                    <h1>Administration - Voitures</h1>
+                    <p className="admin-page__subtitle">
+                        Gérez le stock, les exports et les paramètres de contact.
+                    </p>
+                </div>
 
                 <div className="admin-page__actions">
+                    <Link to="/admin/settings" className="admin-button admin-button--secondary">
+                        Paramètres
+                    </Link>
+
+                    <button
+                        type="button"
+                        className="admin-button admin-button--secondary"
+                        onClick={handleExportCars}
+                        disabled={exportLoading}
+                    >
+                        {exportLoading ? "Export..." : "Exporter CSV"}
+                    </button>
+
                     <Link to="/admin/cars/create" className="admin-button">
                         Ajouter une voiture
                     </Link>

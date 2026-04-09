@@ -5,9 +5,11 @@ import PublicOnlyRoute from "./components/PublicOnlyRoute";
 import HomePage from "./pages/HomePage";
 import CarsPage from "./pages/CarsPage";
 import CarDetailPage from "./pages/CarDetailPage";
+import ContactPage from "./pages/ContactPage";
 import AdminLoginPage from "./pages/AdminLoginPage";
 import AdminCarsPage from "./pages/AdminCarsPage";
 import AdminCarFormPage from "./pages/AdminCarFormPage";
+import AdminSettingsPage from "./pages/AdminSettingsPage";
 
 export default function App() {
     const location = useLocation();
@@ -20,6 +22,7 @@ export default function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/cars" element={<CarsPage />} />
                 <Route path="/cars/:id" element={<CarDetailPage />} />
+                <Route path="/contact" element={<ContactPage />} />
 
                 <Route element={<PublicOnlyRoute />}>
                     <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -29,6 +32,7 @@ export default function App() {
                     <Route path="/admin/cars" element={<AdminCarsPage />} />
                     <Route path="/admin/cars/create" element={<AdminCarFormPage />} />
                     <Route path="/admin/cars/:id/edit" element={<AdminCarFormPage />} />
+                    <Route path="/admin/settings" element={<AdminSettingsPage />} />
                 </Route>
             </Routes>
         </>

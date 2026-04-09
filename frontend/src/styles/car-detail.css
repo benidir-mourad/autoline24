@@ -2,6 +2,27 @@
     padding-top: 32px;
 }
 
+.car-detail__contact-panel {
+    display: grid;
+    gap: 8px;
+    margin: 16px 0 24px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #f9fafb;
+}
+
+.car-detail__contact-panel a {
+    color: #0f766e;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.car-detail__contact-panel p {
+    margin: 0;
+    color: #374151;
+}
+
 .car-detail__top {
     display: grid;
     grid-template-columns: 1.2fr 1fr;

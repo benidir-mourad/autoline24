@@ -5,6 +5,10 @@
 }
 
 .cars-page__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
     margin-bottom: 24px;
 }
 
@@ -16,6 +20,27 @@
 .cars-page__header p {
     margin: 0;
     color: #4b5563;
+}
+
+.cars-page__contact-card {
+    min-width: 240px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    display: grid;
+    gap: 8px;
+}
+
+.cars-page__contact-card span {
+    color: #6b7280;
+    font-size: 0.92rem;
+}
+
+.cars-page__contact-card a {
+    color: #0f766e;
+    text-decoration: none;
+    font-weight: 600;
 }
 
 .filters {
@@ -120,6 +145,10 @@
 }
 
 @media (max-width: 1100px) {
+    .cars-page__header {
+        flex-direction: column;
+    }
+
     .filters {
         grid-template-columns: repeat(2, minmax(180px, 1fr));
     }

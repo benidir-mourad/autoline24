@@ -6,10 +6,20 @@
     background: #111827;
 }
 
+.navbar__brand {
+    text-decoration: none;
+}
+
 .navbar__logo {
     color: #ffffff;
     font-size: 22px;
     font-weight: 700;
+}
+
+.navbar__contact {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.9rem;
+    margin-top: 4px;
 }
 
 .navbar__links {
@@ -25,4 +35,17 @@
 
 .navbar__links a:hover {
     text-decoration: underline;
+}
+
+@media (max-width: 800px) {
+    .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 16px 20px;
+    }
+
+    .navbar__links {
+        flex-wrap: wrap;
+    }
 }

@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\AppSettingController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CarController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CarExpenseController;
 use App\Http\Controllers\Api\CarImageController;
+use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\OptionController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,6 +20,7 @@ Route::get('/cars/{id}', [CarController::class, 'publicShow']);
 Route::post('/admin/login', [AuthController::class, 'login']);
 Route::get('/options', [OptionController::class, 'index']);
 Route::get('/brands', [CarController::class, 'brands']);
+Route::get('/settings/contact', [AppSettingController::class, 'publicContact']);
 
 /*
 |--------------------------------------------------------------------------
@@ -37,7 +40,6 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     Route::get('/cars/{carId}/expenses', [CarExpenseController::class, 'index']);
     Route::post('/cars/{carId}/expenses', [CarExpenseController::class, 'store']);
-
     Route::get('/expenses/{id}', [CarExpenseController::class, 'show']);
     Route::put('/expenses/{id}', [CarExpenseController::class, 'update']);
     Route::delete('/expenses/{id}', [CarExpenseController::class, 'destroy']);
@@ -50,9 +52,13 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/options', [OptionController::class, 'index']);
     Route::post('/options', [OptionController::class, 'store']);
     Route::delete('/options/{id}', [OptionController::class, 'destroy']);
-
     Route::get('/cars/{carId}/options', [OptionController::class, 'carOptions']);
     Route::put('/cars/{carId}/options', [OptionController::class, 'assignToCar']);
     Route::delete('/cars/{carId}/options/{optionId}', [OptionController::class, 'detachFromCar']);
 
+    Route::get('/settings/contact', [AppSettingController::class, 'adminContact']);
+    Route::put('/settings/contact', [AppSettingController::class, 'updateContact']);
+
+    Route::get('/exports/cars', [ExportController::class, 'carsCsv']);
+    Route::get('/exports/cars/{carId}/expenses', [ExportController::class, 'carExpensesCsv']);
 });
