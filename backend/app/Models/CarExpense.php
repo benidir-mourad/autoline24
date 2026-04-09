@@ -9,6 +9,7 @@ class CarExpense extends Model
 {
     protected $fillable = [
         'car_id',
+        'category',
         'expense_type',
         'amount',
         'expense_date',

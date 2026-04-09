@@ -30,6 +30,7 @@ class CarExpenseController extends Controller
         $car = Car::findOrFail($carId);
 
         $validated = $request->validate([
+            'category' => ['required', 'string', 'max:100'],
             'expense_type' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
             'expense_date' => ['required', 'date'],
@@ -56,6 +57,7 @@ class CarExpenseController extends Controller
         $expense = CarExpense::findOrFail($id);
 
         $validated = $request->validate([
+            'category' => ['required', 'string', 'max:100'],
             'expense_type' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'min:0'],
             'expense_date' => ['required', 'date'],

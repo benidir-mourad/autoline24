@@ -30,6 +30,7 @@ class CarExpenseApiTest extends TestCase
         ]);
 
         $createResponse = $this->postJson("/api/admin/cars/{$car->id}/expenses", [
+            'category' => 'Technique',
             'expense_type' => 'Entretien',
             'amount' => 349.99,
             'expense_date' => '2026-04-09',
@@ -39,6 +40,7 @@ class CarExpenseApiTest extends TestCase
         $createResponse
             ->assertCreated()
             ->assertJsonPath('message', 'Frais ajouté avec succès.')
+            ->assertJsonPath('expense.category', 'Technique')
             ->assertJsonPath('expense.expense_type', 'Entretien');
 
         $listResponse = $this->getJson("/api/admin/cars/{$car->id}/expenses");
@@ -46,7 +48,48 @@ class CarExpenseApiTest extends TestCase
         $listResponse
             ->assertOk()
             ->assertJsonPath('total_expenses', 349.99)
+            ->assertJsonPath('expenses.0.category', 'Technique')
             ->assertJsonPath('expenses.0.expense_type', 'Entretien');
+    }
+
+    public function test_admin_can_update_an_expense(): void
+    {
+        Sanctum::actingAs(User::factory()->create(['role' => 'admin']));
+
+        $car = Car::create([
+            'brand' => 'Renault',
+            'model' => 'Clio',
+            'year' => 2021,
+            'mileage' => 43000,
+            'price' => 13990,
+            'purchase_price' => 11200,
+            'fuel_type' => 'Essence',
+            'transmission' => 'Manuelle',
+            'status' => 'available',
+            'publication_status' => 'published',
+        ]);
+
+        $expense = $car->expenses()->create([
+            'category' => 'Technique',
+            'expense_type' => 'Freins',
+            'amount' => 280,
+            'expense_date' => '2026-04-01',
+            'description' => 'Plaquettes avant',
+        ]);
+
+        $response = $this->putJson("/api/admin/expenses/{$expense->id}", [
+            'category' => 'Administratif',
+            'expense_type' => 'Contrôle technique',
+            'amount' => 62,
+            'expense_date' => '2026-04-08',
+            'description' => 'Visite périodique',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('message', 'Frais mis à jour avec succès.')
+            ->assertJsonPath('expense.category', 'Administratif')
+            ->assertJsonPath('expense.expense_type', 'Contrôle technique');
     }
 
     public function test_admin_can_delete_an_expense(): void
@@ -67,6 +110,7 @@ class CarExpenseApiTest extends TestCase
         ]);
 
         $expense = $car->expenses()->create([
+            'category' => 'Technique',
             'expense_type' => 'Pneus',
             'amount' => 420,
             'expense_date' => '2026-04-01',

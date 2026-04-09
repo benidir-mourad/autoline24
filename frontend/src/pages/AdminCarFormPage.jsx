@@ -4,17 +4,25 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import api from "../services/api";
 import "../styles/admin.css";
 
-const suggestedExpenseTypes = [
-    "Entretien",
-    "Vidange",
-    "Pneus",
-    "Freins",
-    "Distribution",
-    "Contrôle technique",
-    "Préparation",
-    "Nettoyage",
-    "Carte grise",
-    "Transport",
+const expenseCategories = [
+    "Technique",
+    "Esthétique",
+    "Administratif",
+    "Logistique",
+    "Commercial",
+];
+
+const suggestedExpenses = [
+    { category: "Technique", expense_type: "Entretien" },
+    { category: "Technique", expense_type: "Vidange" },
+    { category: "Technique", expense_type: "Pneus" },
+    { category: "Technique", expense_type: "Freins" },
+    { category: "Technique", expense_type: "Distribution" },
+    { category: "Administratif", expense_type: "Contrôle technique" },
+    { category: "Esthétique", expense_type: "Préparation" },
+    { category: "Esthétique", expense_type: "Nettoyage" },
+    { category: "Administratif", expense_type: "Carte grise" },
+    { category: "Logistique", expense_type: "Transport" },
 ];
 
 const initialForm = {
@@ -43,7 +51,8 @@ const initialForm = {
 };
 
 const initialExpenseForm = {
-    expense_type: suggestedExpenseTypes[0],
+    category: suggestedExpenses[0].category,
+    expense_type: suggestedExpenses[0].expense_type,
     amount: "",
     expense_date: new Date().toISOString().slice(0, 10),
     description: "",
@@ -81,6 +90,8 @@ export default function AdminCarFormPage() {
     const [isDragOver, setIsDragOver] = useState(false);
     const [newOptionName, setNewOptionName] = useState("");
     const [expenseForm, setExpenseForm] = useState(initialExpenseForm);
+    const [editingExpenseId, setEditingExpenseId] = useState(null);
+    const [expenseFilterCategory, setExpenseFilterCategory] = useState("all");
 
     const [loading, setLoading] = useState(false);
     const [imageLoading, setImageLoading] = useState(false);
@@ -124,6 +135,35 @@ export default function AdminCarFormPage() {
             estimatedMargin,
         };
     }, [carSummary, form.price, form.purchase_price]);
+
+    const mainImage = useMemo(
+        () => images.find((image) => image.is_main) ?? images[0] ?? null,
+        [images]
+    );
+
+    const expenseTotalsByCategory = useMemo(
+        () =>
+            expenseCategories.map((category) => ({
+                category,
+                total: expenses
+                    .filter((expense) => expense.category === category)
+                    .reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
+            })),
+        [expenses]
+    );
+
+    const filteredExpenses = useMemo(() => {
+        if (expenseFilterCategory === "all") return expenses;
+        return expenses.filter((expense) => expense.category === expenseFilterCategory);
+    }, [expenseFilterCategory, expenses]);
+
+    const selectedOptions = useMemo(
+        () =>
+            options.filter((option) =>
+                selectedOptionIds.includes(String(option.id))
+            ),
+        [options, selectedOptionIds]
+    );
 
     useEffect(() => {
         return () => {
@@ -262,6 +302,14 @@ export default function AdminCarFormPage() {
         setExpenseForm((prev) => ({
             ...prev,
             [name]: value,
+        }));
+    }
+
+    function handleExpenseSuggestionSelect(suggestion) {
+        setExpenseForm((prev) => ({
+            ...prev,
+            category: suggestion.category,
+            expense_type: suggestion.expense_type,
         }));
     }
 
@@ -445,18 +493,26 @@ export default function AdminCarFormPage() {
             setExpenseCreateLoading(true);
             setScopedFeedback(setExpenseFeedback, "", "");
 
-            await api.post(`/admin/cars/${id}/expenses`, {
+            const payload = {
                 ...expenseForm,
                 amount: Number(expenseForm.amount),
-            });
+            };
 
-            setExpenseForm((prev) => ({
-                ...initialExpenseForm,
-                expense_type: prev.expense_type || initialExpenseForm.expense_type,
-            }));
+            if (editingExpenseId) {
+                await api.put(`/admin/expenses/${editingExpenseId}`, payload);
+            } else {
+                await api.post(`/admin/cars/${id}/expenses`, payload);
+            }
+
+            setExpenseForm(initialExpenseForm);
+            setEditingExpenseId(null);
             await fetchCar();
             await fetchExpenses();
-            setScopedFeedback(setExpenseFeedback, "success", "Frais ajouté avec succès.");
+            setScopedFeedback(
+                setExpenseFeedback,
+                "success",
+                editingExpenseId ? "Frais mis à jour avec succès." : "Frais ajouté avec succès."
+            );
         } catch (error) {
             console.error("Erreur lors de l'ajout du frais :", error);
             setScopedFeedback(
@@ -467,6 +523,28 @@ export default function AdminCarFormPage() {
         } finally {
             setExpenseCreateLoading(false);
         }
+    }
+
+    function handleEditExpense(expense) {
+        setEditingExpenseId(expense.id);
+        setExpenseForm({
+            category: expense.category || expenseCategories[0],
+            expense_type: expense.expense_type || "",
+            amount: String(expense.amount ?? ""),
+            expense_date: expense.expense_date ? String(expense.expense_date).slice(0, 10) : "",
+            description: expense.description || "",
+        });
+        setScopedFeedback(setExpenseFeedback, "", "");
+    }
+
+    function handleCancelExpenseEdit() {
+        setEditingExpenseId(null);
+        setExpenseForm(initialExpenseForm);
+        setScopedFeedback(setExpenseFeedback, "", "");
+    }
+
+    function handlePrintSheet() {
+        window.print();
     }
 
     async function handleDeleteExpense(expenseId) {
@@ -624,7 +702,30 @@ export default function AdminCarFormPage() {
     }
     return (
         <main className="page admin-page">
-            <h1>{isEdit ? "Modifier une voiture" : "Ajouter une voiture"}</h1>
+            <div className="admin-page__header admin-page__header--stacked">
+                <div>
+                    <h1>{isEdit ? "Modifier une voiture" : "Ajouter une voiture"}</h1>
+                    {isEdit && carSummary && (
+                        <p className="admin-page__subtitle">
+                            {carSummary.brand} {carSummary.model}
+                            {carSummary.version ? ` • ${carSummary.version}` : ""}
+                            {carSummary.reference ? ` • Réf. ${carSummary.reference}` : ""}
+                        </p>
+                    )}
+                </div>
+
+                {isEdit && (
+                    <div className="admin-page__actions admin-print-hidden">
+                        <button
+                            type="button"
+                            className="admin-button admin-button--secondary"
+                            onClick={handlePrintSheet}
+                        >
+                            Imprimer la fiche
+                        </button>
+                    </div>
+                )}
+            </div>
 
             {formFeedback.message && (
                 <p className={`admin-feedback admin-feedback--${formFeedback.type}`}>
@@ -634,6 +735,85 @@ export default function AdminCarFormPage() {
 
             {isEdit && (
                 <>
+                    <section className="admin-vehicle-sheet">
+                        <div className="admin-vehicle-sheet__media">
+                            {mainImage ? (
+                                <img
+                                    src={mainImage.image_url}
+                                    alt={`${carSummary?.brand || "Voiture"} ${carSummary?.model || ""}`}
+                                    className="admin-vehicle-sheet__image"
+                                />
+                            ) : (
+                                <div className="admin-vehicle-sheet__placeholder">
+                                    Aucune image principale
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="admin-vehicle-sheet__content">
+                            <div className="admin-vehicle-sheet__badges">
+                                <span className="admin-badge">{form.status}</span>
+                                <span className="admin-badge admin-badge--muted">
+                                    {form.publication_status}
+                                </span>
+                                {form.featured && <span className="admin-badge">Mise en avant</span>}
+                            </div>
+
+                            <h2>
+                                {form.brand} {form.model}
+                                {form.version ? ` ${form.version}` : ""}
+                            </h2>
+
+                            <div className="admin-vehicle-sheet__facts">
+                                <span>{form.year || "Année non renseignée"}</span>
+                                <span>{form.mileage ? `${form.mileage} km` : "Kilométrage à compléter"}</span>
+                                <span>{form.fuel_type}</span>
+                                <span>{form.transmission}</span>
+                                <span>{form.color || "Couleur à compléter"}</span>
+                                <span>{form.body_type || "Carrosserie à compléter"}</span>
+                            </div>
+
+                            <div className="admin-vehicle-sheet__stats">
+                                <div>
+                                    <span>Prix de vente</span>
+                                    <strong>{formatCurrency(financialSummary.salePrice)}</strong>
+                                </div>
+                                <div>
+                                    <span>Prix d'achat</span>
+                                    <strong>{formatCurrency(financialSummary.purchasePrice)}</strong>
+                                </div>
+                                <div>
+                                    <span>Options actives</span>
+                                    <strong>{selectedOptionIds.length}</strong>
+                                </div>
+                                <div>
+                                    <span>Images</span>
+                                    <strong>{images.length}</strong>
+                                </div>
+                            </div>
+
+                            <div className="admin-vehicle-sheet__options">
+                                <span>Options actives</span>
+                                <div className="admin-vehicle-sheet__option-list">
+                                    {selectedOptions.length > 0 ? (
+                                        selectedOptions.map((option) => (
+                                            <span
+                                                key={option.id}
+                                                className="admin-badge admin-badge--muted"
+                                            >
+                                                {option.name}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <span className="admin-vehicle-sheet__empty">
+                                            Aucune option sélectionnée
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <section className="admin-summary-section">
                         <div className="admin-summary-card">
                             <span>Prix d'achat</span>
@@ -668,6 +848,22 @@ export default function AdminCarFormPage() {
                                     claire sur le coût réel.
                                 </p>
                             </div>
+
+                            <div className="admin-expenses-section__tools admin-print-hidden">
+                                <select
+                                    value={expenseFilterCategory}
+                                    onChange={(event) =>
+                                        setExpenseFilterCategory(event.target.value)
+                                    }
+                                >
+                                    <option value="all">Toutes les catégories</option>
+                                    {expenseCategories.map((category) => (
+                                        <option key={category} value={category}>
+                                            {category}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
                         {expenseFeedback.message && (
@@ -678,13 +874,28 @@ export default function AdminCarFormPage() {
 
                         <form className="admin-expense-form" onSubmit={handleCreateExpense}>
                             <select
+                                name="category"
+                                value={expenseForm.category}
+                                onChange={handleExpenseChange}
+                            >
+                                {expenseCategories.map((category) => (
+                                    <option key={category} value={category}>
+                                        {category}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <select
                                 name="expense_type"
                                 value={expenseForm.expense_type}
                                 onChange={handleExpenseChange}
                             >
-                                {suggestedExpenseTypes.map((expenseType) => (
-                                    <option key={expenseType} value={expenseType}>
-                                        {expenseType}
+                                {suggestedExpenses.map((suggestion) => (
+                                    <option
+                                        key={`${suggestion.category}-${suggestion.expense_type}`}
+                                        value={suggestion.expense_type}
+                                    >
+                                        {suggestion.expense_type}
                                     </option>
                                 ))}
                             </select>
@@ -721,38 +932,63 @@ export default function AdminCarFormPage() {
                                 className="admin-button"
                                 disabled={expenseCreateLoading}
                             >
-                                {expenseCreateLoading ? "Ajout..." : "Ajouter le frais"}
+                                {expenseCreateLoading
+                                    ? "Enregistrement..."
+                                    : editingExpenseId
+                                      ? "Enregistrer le frais"
+                                      : "Ajouter le frais"}
                             </button>
+
+                            {editingExpenseId && (
+                                <button
+                                    type="button"
+                                    className="admin-button admin-button--secondary"
+                                    onClick={handleCancelExpenseEdit}
+                                    disabled={expenseCreateLoading}
+                                >
+                                    Annuler
+                                </button>
+                            )}
                         </form>
 
-                        <div className="admin-expense-suggestions">
-                            {suggestedExpenseTypes.map((expenseType) => (
+                        <div className="admin-expense-suggestions admin-print-hidden">
+                            {suggestedExpenses.map((suggestion) => (
                                 <button
-                                    key={expenseType}
+                                    key={`${suggestion.category}-${suggestion.expense_type}`}
                                     type="button"
                                     className={`admin-chip ${
-                                        expenseForm.expense_type === expenseType ? "is-active" : ""
+                                        expenseForm.expense_type === suggestion.expense_type &&
+                                        expenseForm.category === suggestion.category
+                                            ? "is-active"
+                                            : ""
                                     }`}
-                                    onClick={() =>
-                                        setExpenseForm((prev) => ({
-                                            ...prev,
-                                            expense_type: expenseType,
-                                        }))
-                                    }
+                                    onClick={() => handleExpenseSuggestionSelect(suggestion)}
                                 >
-                                    {expenseType}
+                                    {suggestion.category} • {suggestion.expense_type}
                                 </button>
+                            ))}
+                        </div>
+
+                        <div className="admin-expense-totals">
+                            {expenseTotalsByCategory.map(({ category, total }) => (
+                                <div key={category} className="admin-expense-total-card">
+                                    <span>{category}</span>
+                                    <strong>{formatCurrency(total)}</strong>
+                                </div>
                             ))}
                         </div>
 
                         {expensesLoading ? (
                             <p>Chargement des frais...</p>
-                        ) : expenses.length > 0 ? (
+                        ) : filteredExpenses.length > 0 ? (
                             <div className="admin-expenses-list">
-                                {expenses.map((expense) => (
+                                {filteredExpenses.map((expense) => (
                                     <article key={expense.id} className="admin-expense-card">
                                         <div className="admin-expense-card__top">
                                             <div>
+                                                <span className="admin-badge admin-badge--muted">
+                                                    {expense.category}
+                                                </span>
                                                 <h3>{expense.expense_type}</h3>
                                                 <p>{formatDate(expense.expense_date)}</p>
                                             </div>
@@ -769,7 +1005,15 @@ export default function AdminCarFormPage() {
                                         <div className="admin-expense-card__actions">
                                             <button
                                                 type="button"
-                                                className="admin-link admin-link--danger"
+                                                className="admin-link admin-print-hidden"
+                                                onClick={() => handleEditExpense(expense)}
+                                            >
+                                                Modifier
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className="admin-link admin-link--danger admin-print-hidden"
                                                 onClick={() => openDeleteExpenseConfirm(expense)}
                                             >
                                                 Supprimer
@@ -779,7 +1023,11 @@ export default function AdminCarFormPage() {
                                 ))}
                             </div>
                         ) : (
-                            <p>Aucun frais ajouté pour le moment.</p>
+                            <p>
+                                {expenseFilterCategory === "all"
+                                    ? "Aucun frais ajouté pour le moment."
+                                    : "Aucun frais dans cette catégorie pour le moment."}
+                            </p>
                         )}
                     </section>
                 </>
