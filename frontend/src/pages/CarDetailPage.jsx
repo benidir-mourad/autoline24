@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import api from "../services/api";
 import "../styles/car-detail.css";
@@ -9,11 +9,7 @@ export default function CarDetailPage() {
     const [loading, setLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState("");
 
-    useEffect(() => {
-        fetchCar();
-    }, [id]);
-
-    async function fetchCar() {
+    const fetchCar = useCallback(async () => {
         try {
             setLoading(true);
             const response = await api.get(`/cars/${id}`);
@@ -32,7 +28,11 @@ export default function CarDetailPage() {
         } finally {
             setLoading(false);
         }
-    }
+    }, [id]);
+
+    useEffect(() => {
+        fetchCar();
+    }, [fetchCar]);
 
     function goToNext() {
         if (!car?.images?.length) return;
@@ -205,8 +205,8 @@ export default function CarDetailPage() {
                             <div className="car-detail__badges">
                                 {car.options.map((option) => (
                                     <span key={option.id} className="car-detail__badge">
-                    {option.name}
-                  </span>
+                                        {option.name}
+                                    </span>
                                 ))}
                             </div>
                         ) : (

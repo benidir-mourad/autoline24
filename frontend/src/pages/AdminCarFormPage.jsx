@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import ConfirmDialog from "../components/ConfirmDialog";
 import api from "../services/api";
 import "../styles/admin.css";
 
@@ -38,22 +39,30 @@ export default function AdminCarFormPage() {
     const [options, setOptions] = useState([]);
     const [selectedOptionIds, setSelectedOptionIds] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [newOptionName, setNewOptionName] = useState("");
 
     const [loading, setLoading] = useState(false);
     const [imageLoading, setImageLoading] = useState(false);
     const [optionsLoading, setOptionsLoading] = useState(false);
+    const [optionCreateLoading, setOptionCreateLoading] = useState(false);
+    const [optionCreateMessage, setOptionCreateMessage] = useState("");
+    const [optionCreateError, setOptionCreateError] = useState("");
+    const [formFeedback, setFormFeedback] = useState({ type: "", message: "" });
+    const [imageFeedback, setImageFeedback] = useState({ type: "", message: "" });
+    const [confirmState, setConfirmState] = useState({
+        open: false,
+        type: "",
+        id: null,
+        title: "",
+        message: "",
+    });
+    const [confirmLoading, setConfirmLoading] = useState(false);
 
-    useEffect(() => {
-        fetchAllOptions();
+    function setScopedFeedback(setter, type, message) {
+        setter({ type, message });
+    }
 
-        if (isEdit) {
-            fetchCar();
-            fetchImages();
-            fetchCarOptions();
-        }
-    }, [id]);
-
-    async function fetchCar() {
+    const fetchCar = useCallback(async () => {
         try {
             setLoading(true);
             const response = await api.get(`/admin/cars/${id}`);
@@ -91,27 +100,27 @@ export default function AdminCarFormPage() {
         } finally {
             setLoading(false);
         }
-    }
+    }, [id, navigate]);
 
-    async function fetchImages() {
+    const fetchImages = useCallback(async () => {
         try {
             const response = await api.get(`/admin/cars/${id}/images`);
             setImages(response.data.images ?? []);
         } catch (error) {
             console.error("Erreur lors du chargement des images :", error);
         }
-    }
+    }, [id]);
 
-    async function fetchAllOptions() {
+    const fetchAllOptions = useCallback(async () => {
         try {
             const response = await api.get("/admin/options");
             setOptions(response.data ?? []);
         } catch (error) {
             console.error("Erreur lors du chargement des options :", error);
         }
-    }
+    }, []);
 
-    async function fetchCarOptions() {
+    const fetchCarOptions = useCallback(async () => {
         try {
             const response = await api.get(`/admin/cars/${id}/options`);
             const carOptions = response.data.options ?? [];
@@ -119,7 +128,17 @@ export default function AdminCarFormPage() {
         } catch (error) {
             console.error("Erreur lors du chargement des options de la voiture :", error);
         }
-    }
+    }, [id]);
+
+    useEffect(() => {
+        fetchAllOptions();
+
+        if (isEdit) {
+            fetchCar();
+            fetchImages();
+            fetchCarOptions();
+        }
+    }, [fetchAllOptions, fetchCar, fetchCarOptions, fetchImages, isEdit]);
 
     function handleChange(event) {
         const { name, value, type, checked } = event.target;
@@ -140,7 +159,7 @@ export default function AdminCarFormPage() {
             const stringId = String(optionId);
 
             if (prev.includes(stringId)) {
-                return prev.filter((id) => id !== stringId);
+                return prev.filter((currentId) => currentId !== stringId);
             }
 
             return [...prev, stringId];
@@ -151,6 +170,7 @@ export default function AdminCarFormPage() {
         event.preventDefault();
 
         try {
+            setScopedFeedback(setFormFeedback, "", "");
             const payload = {
                 ...form,
                 featured: form.featured ? 1 : 0,
@@ -167,14 +187,80 @@ export default function AdminCarFormPage() {
 
             if (selectedOptionIds.length > 0 || isEdit) {
                 await api.put(`/admin/cars/${carId}/options`, {
-                    option_ids: selectedOptionIds.map((id) => Number(id)),
+                    option_ids: selectedOptionIds.map((optionId) => Number(optionId)),
                 });
             }
 
             navigate("/admin/cars");
         } catch (error) {
             console.error(error);
-            alert("Erreur lors de l'enregistrement.");
+            setScopedFeedback(
+                setFormFeedback,
+                "error",
+                error.response?.data?.message || "Erreur lors de l'enregistrement."
+            );
+        }
+    }
+
+    async function handleCreateOption(event) {
+        event.preventDefault();
+
+        const trimmedName = newOptionName.trim();
+
+        if (!trimmedName) {
+            setOptionCreateError("Entrez un nom d'option.");
+            setOptionCreateMessage("");
+            return;
+        }
+
+        try {
+            setOptionCreateLoading(true);
+            setOptionCreateError("");
+            setOptionCreateMessage("");
+
+            const response = await api.post("/admin/options", {
+                name: trimmedName,
+            });
+
+            const createdOption = response.data.option;
+
+            setOptions((prev) =>
+                [...prev, createdOption].sort((a, b) => a.name.localeCompare(b.name, "fr"))
+            );
+            setSelectedOptionIds((prev) => {
+                const nextId = String(createdOption.id);
+                return prev.includes(nextId) ? prev : [...prev, nextId];
+            });
+            setNewOptionName("");
+            setOptionCreateMessage("Option créée et sélectionnée.");
+        } catch (error) {
+            console.error("Erreur lors de la creation de l'option :", error);
+            setOptionCreateMessage("");
+            setOptionCreateError(
+                error.response?.data?.message || "Impossible de creer cette option."
+            );
+        } finally {
+            setOptionCreateLoading(false);
+        }
+    }
+
+    async function handleDeleteOption(optionId) {
+        try {
+            setConfirmLoading(true);
+            setOptionCreateError("");
+            setOptionCreateMessage("");
+
+            await api.delete(`/admin/options/${optionId}`);
+
+            setOptions((prev) => prev.filter((option) => option.id !== optionId));
+            setSelectedOptionIds((prev) => prev.filter((value) => value !== String(optionId)));
+            setOptionCreateMessage("Option supprimée.");
+            setConfirmState({ open: false, type: "", id: null, title: "", message: "" });
+        } catch (error) {
+            console.error("Erreur lors de la suppression de l'option :", error);
+            setOptionCreateError("Impossible de supprimer cette option.");
+        } finally {
+            setConfirmLoading(false);
         }
     }
 
@@ -183,6 +269,7 @@ export default function AdminCarFormPage() {
 
         try {
             setImageLoading(true);
+            setScopedFeedback(setImageFeedback, "", "");
 
             const formData = new FormData();
             formData.append("image", selectedFile);
@@ -197,9 +284,14 @@ export default function AdminCarFormPage() {
 
             setSelectedFile(null);
             await fetchImages();
+            setScopedFeedback(setImageFeedback, "success", "Image ajoutée avec succès.");
         } catch (error) {
             console.error(error);
-            alert("Erreur lors de l'upload de l'image.");
+            setScopedFeedback(
+                setImageFeedback,
+                "error",
+                error.response?.data?.message || "Erreur lors de l'upload de l'image."
+            );
         } finally {
             setImageLoading(false);
         }
@@ -207,24 +299,74 @@ export default function AdminCarFormPage() {
 
     async function handleSetMain(imageId) {
         try {
+            setScopedFeedback(setImageFeedback, "", "");
             await api.patch(`/admin/images/${imageId}/set-main`);
             await fetchImages();
+            setScopedFeedback(setImageFeedback, "success", "Image principale mise à jour.");
         } catch (error) {
             console.error(error);
-            alert("Erreur lors du changement d'image principale.");
+            setScopedFeedback(
+                setImageFeedback,
+                "error",
+                error.response?.data?.message || "Erreur lors du changement d'image principale."
+            );
         }
     }
 
     async function handleDeleteImage(imageId) {
-        const confirmed = window.confirm("Supprimer cette image ?");
-        if (!confirmed) return;
-
         try {
+            setConfirmLoading(true);
+            setScopedFeedback(setImageFeedback, "", "");
             await api.delete(`/admin/images/${imageId}`);
             await fetchImages();
+            setScopedFeedback(setImageFeedback, "success", "Image supprimée.");
+            setConfirmState({ open: false, type: "", id: null, title: "", message: "" });
         } catch (error) {
             console.error(error);
-            alert("Erreur lors de la suppression de l'image.");
+            setScopedFeedback(
+                setImageFeedback,
+                "error",
+                error.response?.data?.message || "Erreur lors de la suppression de l'image."
+            );
+        } finally {
+            setConfirmLoading(false);
+        }
+    }
+
+    function openDeleteOptionConfirm(option) {
+        setConfirmState({
+            open: true,
+            type: "option",
+            id: option.id,
+            title: "Supprimer cette option ?",
+            message: `L'option ${option.name} sera retirée de toutes les voitures.`,
+        });
+    }
+
+    function openDeleteImageConfirm(image) {
+        setConfirmState({
+            open: true,
+            type: "image",
+            id: image.id,
+            title: "Supprimer cette image ?",
+            message: "Cette image sera retirée définitivement du véhicule.",
+        });
+    }
+
+    function closeConfirmDialog() {
+        if (confirmLoading) return;
+
+        setConfirmState({ open: false, type: "", id: null, title: "", message: "" });
+    }
+
+    function handleConfirmAction() {
+        if (confirmState.type === "option") {
+            handleDeleteOption(confirmState.id);
+            return;
+        }
+
+        if (confirmState.type === "image") {
+            handleDeleteImage(confirmState.id);
         }
     }
 
@@ -233,15 +375,19 @@ export default function AdminCarFormPage() {
 
         try {
             setOptionsLoading(true);
+            setOptionCreateError("");
+            setOptionCreateMessage("");
 
             await api.put(`/admin/cars/${id}/options`, {
                 option_ids: selectedOptionIds.map((optionId) => Number(optionId)),
             });
 
-            alert("Options mises à jour avec succès.");
+            setOptionCreateMessage("Options mises à jour avec succès.");
         } catch (error) {
             console.error(error);
-            alert("Erreur lors de la mise à jour des options.");
+            setOptionCreateError(
+                error.response?.data?.message || "Erreur lors de la mise a jour des options."
+            );
         } finally {
             setOptionsLoading(false);
         }
@@ -258,6 +404,12 @@ export default function AdminCarFormPage() {
     return (
         <main className="page admin-page">
             <h1>{isEdit ? "Modifier une voiture" : "Ajouter une voiture"}</h1>
+
+            {formFeedback.message && (
+                <p className={`admin-feedback admin-feedback--${formFeedback.type}`}>
+                    {formFeedback.message}
+                </p>
+            )}
 
             <form className="admin-form" onSubmit={handleSubmit}>
                 <input name="brand" placeholder="Marque" value={form.brand} onChange={handleChange} />
@@ -342,17 +494,48 @@ export default function AdminCarFormPage() {
                     )}
                 </div>
 
+                <form className="admin-option-create" onSubmit={handleCreateOption}>
+                    <input
+                        type="text"
+                        value={newOptionName}
+                        onChange={(event) => setNewOptionName(event.target.value)}
+                        placeholder="Nouvelle option"
+                    />
+
+                    <button type="submit" className="admin-button" disabled={optionCreateLoading}>
+                        {optionCreateLoading ? "Création..." : "Créer l'option"}
+                    </button>
+                </form>
+
+                {optionCreateMessage && (
+                    <p className="admin-feedback admin-feedback--success">{optionCreateMessage}</p>
+                )}
+
+                {optionCreateError && (
+                    <p className="admin-feedback admin-feedback--error">{optionCreateError}</p>
+                )}
+
                 {options.length > 0 ? (
                     <div className="admin-options-grid">
                         {options.map((option) => (
-                            <label key={option.id} className="admin-option-item">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedOptionIds.includes(String(option.id))}
-                                    onChange={() => handleOptionToggle(option.id)}
-                                />
-                                <span>{option.name}</span>
-                            </label>
+                            <div key={option.id} className="admin-option-item">
+                                <label className="admin-option-item__label">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedOptionIds.includes(String(option.id))}
+                                        onChange={() => handleOptionToggle(option.id)}
+                                    />
+                                    <span>{option.name}</span>
+                                </label>
+
+                                <button
+                                    type="button"
+                                    className="admin-link admin-link--danger"
+                                    onClick={() => openDeleteOptionConfirm(option)}
+                                >
+                                    Supprimer
+                                </button>
+                            </div>
                         ))}
                     </div>
                 ) : (
@@ -364,6 +547,12 @@ export default function AdminCarFormPage() {
                 <section className="admin-images-section">
                     <h2>Images</h2>
 
+                    {imageFeedback.message && (
+                        <p className={`admin-feedback admin-feedback--${imageFeedback.type}`}>
+                            {imageFeedback.message}
+                        </p>
+                    )}
+
                     <div className="admin-images-upload">
                         <input type="file" accept="image/*" onChange={handleFileChange} />
                         <button
@@ -372,7 +561,7 @@ export default function AdminCarFormPage() {
                             onClick={handleImageUpload}
                             disabled={!selectedFile || imageLoading}
                         >
-                            {imageLoading ? "Upload..." : "Ajouter l’image"}
+                            {imageLoading ? "Upload..." : "Ajouter l'image"}
                         </button>
                     </div>
 
@@ -402,7 +591,7 @@ export default function AdminCarFormPage() {
                                         <button
                                             type="button"
                                             className="admin-link admin-link--danger"
-                                            onClick={() => handleDeleteImage(image.id)}
+                                            onClick={() => openDeleteImageConfirm(image)}
                                         >
                                             Supprimer
                                         </button>
@@ -415,6 +604,16 @@ export default function AdminCarFormPage() {
                     )}
                 </section>
             )}
+
+            <ConfirmDialog
+                open={confirmState.open}
+                title={confirmState.title}
+                message={confirmState.message}
+                confirmLabel="Supprimer"
+                loading={confirmLoading}
+                onCancel={closeConfirmDialog}
+                onConfirm={handleConfirmAction}
+            />
         </main>
     );
 }

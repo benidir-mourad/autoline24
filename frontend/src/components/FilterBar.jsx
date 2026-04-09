@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "../styles/cars.css";
 
 export default function FilterBar({
-                                      filters,
-                                      options,
-                                      brands,
-                                      onChange,
-                                      onSubmit,
-                                      onReset,
-                                  }) {
+    filters,
+    options,
+    brands,
+    onChange,
+    onSubmit,
+    onReset,
+}) {
     const [open, setOpen] = useState(false);
     const [optionSearch, setOptionSearch] = useState("");
     const dropdownRef = useRef();

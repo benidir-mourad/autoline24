@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../services/api";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 export default function AdminLoginPage() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { login } = useAuth();
 
     const [form, setForm] = useState({
         email: "",
         password: "",
     });
-
     const [message, setMessage] = useState("");
+    const [loading, setLoading] = useState(false);
 
     function handleChange(event) {
         const { name, value } = event.target;
@@ -24,13 +26,16 @@ export default function AdminLoginPage() {
         event.preventDefault();
 
         try {
-            const response = await api.post("/admin/login", form);
-            localStorage.setItem("token", response.data.token);
+            setLoading(true);
+            setMessage("");
+            await login(form);
             setMessage("Connexion réussie.");
-            navigate("/admin/cars");
+            navigate(location.state?.from?.pathname || "/admin/cars", { replace: true });
         } catch (error) {
             setMessage("Erreur de connexion.");
             console.error(error);
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -55,7 +60,9 @@ export default function AdminLoginPage() {
                     onChange={handleChange}
                 />
 
-                <button type="submit">Se connecter</button>
+                <button type="submit" disabled={loading}>
+                    {loading ? "Connexion..." : "Se connecter"}
+                </button>
             </form>
 
             {message && <p>{message}</p>}

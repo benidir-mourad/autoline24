@@ -49,6 +49,7 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     Route::get('/options', [OptionController::class, 'index']);
     Route::post('/options', [OptionController::class, 'store']);
+    Route::delete('/options/{id}', [OptionController::class, 'destroy']);
 
     Route::get('/cars/{carId}/options', [OptionController::class, 'carOptions']);
     Route::put('/cars/{carId}/options', [OptionController::class, 'assignToCar']);

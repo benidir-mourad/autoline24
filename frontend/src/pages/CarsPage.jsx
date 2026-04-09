@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import CarCard from "../components/CarCard";
@@ -41,11 +41,6 @@ export default function CarsPage() {
     const [filters, setFilters] = useState(() => getInitialFilters(searchParams));
 
     useEffect(() => {
-        fetchOptions();
-        fetchBrands();
-    }, []);
-
-    useEffect(() => {
         const urlFilters = getInitialFilters(searchParams);
         const urlPage = getInitialPage(searchParams);
 
@@ -56,16 +51,7 @@ export default function CarsPage() {
         }));
     }, [searchParams]);
 
-    useEffect(() => {
-        const delayDebounce = setTimeout(() => {
-            updateUrlFromState(filters, meta.current_page);
-            fetchCars(filters, meta.current_page);
-        }, 400);
-
-        return () => clearTimeout(delayDebounce);
-    }, [filters, meta.current_page]);
-
-    async function fetchCars(customFilters = filters, page = 1) {
+    const fetchCars = useCallback(async (customFilters, page = 1) => {
         try {
             setLoading(true);
 
@@ -88,27 +74,27 @@ export default function CarsPage() {
         } finally {
             setLoading(false);
         }
-    }
+    }, []);
 
-    async function fetchOptions() {
+    const fetchOptions = useCallback(async () => {
         try {
             const response = await api.get("/options");
             setOptions(response.data ?? []);
         } catch (error) {
             console.error("Erreur lors du chargement des options :", error);
         }
-    }
+    }, []);
 
-    async function fetchBrands() {
+    const fetchBrands = useCallback(async () => {
         try {
             const response = await api.get("/brands");
             setBrands(response.data ?? []);
         } catch (error) {
             console.error("Erreur lors du chargement des marques :", error);
         }
-    }
+    }, []);
 
-    function updateUrlFromState(currentFilters, currentPage = 1) {
+    const updateUrlFromState = useCallback((currentFilters, currentPage = 1) => {
         const params = new URLSearchParams();
 
         if (currentFilters.search) params.set("search", currentFilters.search);
@@ -130,7 +116,21 @@ export default function CarsPage() {
         }
 
         setSearchParams(params, { replace: true });
-    }
+    }, [setSearchParams]);
+
+    useEffect(() => {
+        fetchOptions();
+        fetchBrands();
+    }, [fetchBrands, fetchOptions]);
+
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+            updateUrlFromState(filters, meta.current_page);
+            fetchCars(filters, meta.current_page);
+        }, 400);
+
+        return () => clearTimeout(delayDebounce);
+    }, [fetchCars, filters, meta.current_page, updateUrlFromState]);
 
     function handleFilterChange(event) {
         const { name, value, checked } = event.target;
@@ -257,8 +257,8 @@ export default function CarsPage() {
                     </button>
 
                     <span>
-            Page {meta.current_page} / {meta.last_page}
-          </span>
+                        Page {meta.current_page} / {meta.last_page}
+                    </span>
 
                     <button
                         type="button"

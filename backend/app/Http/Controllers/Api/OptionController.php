@@ -29,9 +29,19 @@ class OptionController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Option créée avec succès.',
+            'message' => 'Option creee avec succes.',
             'option' => $option,
         ], 201);
+    }
+
+    public function destroy(string $id)
+    {
+        $option = Option::findOrFail($id);
+        $option->delete();
+
+        return response()->json([
+            'message' => 'Option supprimee avec succes.',
+        ]);
     }
 
     public function assignToCar(Request $request, string $carId)
@@ -46,7 +56,7 @@ class OptionController extends Controller
         $car->options()->sync($validated['option_ids']);
 
         return response()->json([
-            'message' => 'Options de la voiture mises à jour avec succès.',
+            'message' => 'Options de la voiture mises a jour avec succes.',
             'car' => $car->load('options'),
         ]);
     }
@@ -67,7 +77,7 @@ class OptionController extends Controller
         $car->options()->detach($optionId);
 
         return response()->json([
-            'message' => 'Option retirée de la voiture avec succès.',
+            'message' => 'Option retiree de la voiture avec succes.',
         ]);
     }
 }
