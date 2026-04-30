@@ -1,6 +1,8 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ConfirmDialog from "../components/ConfirmDialog";
+import ComboboxSelect from "../components/ComboboxSelect";
+import { CAR_MAKES, getModelsForMake } from "../data/carMakesModels";
 import api from "../services/api";
 import "../styles/admin.css";
 
@@ -1099,8 +1101,19 @@ export default function AdminCarFormPage() {
             )}
 
             <form className="admin-form" onSubmit={handleSubmit}>
-                <input name="brand" placeholder="Marque" value={form.brand} onChange={handleChange} />
-                <input name="model" placeholder="Modèle" value={form.model} onChange={handleChange} />
+                <ComboboxSelect
+                    value={form.brand}
+                    options={CAR_MAKES}
+                    placeholder="Marque"
+                    onChange={(val) => setForm((f) => ({ ...f, brand: val, model: "" }))}
+                />
+                <ComboboxSelect
+                    value={form.model}
+                    options={getModelsForMake(form.brand)}
+                    placeholder={form.brand ? "Modèle" : "Sélectionnez d'abord une marque"}
+                    disabled={false}
+                    onChange={(val) => setForm((f) => ({ ...f, model: val }))}
+                />
                 <input name="version" placeholder="Version" value={form.version} onChange={handleChange} />
                 <input name="year" type="number" placeholder="Année" value={form.year} onChange={handleChange} />
                 <input name="mileage" type="number" placeholder="Kilométrage" value={form.mileage} onChange={handleChange} />
