@@ -63,6 +63,9 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/settings/contact', [AppSettingController::class, 'adminContact']);
     Route::put('/settings/contact', [AppSettingController::class, 'updateContact']);
 
+    Route::get('/settings/mail', [AppSettingController::class, 'adminMail']);
+    Route::put('/settings/mail', [AppSettingController::class, 'updateMail']);
+
     Route::get('/exports/cars', [ExportController::class, 'carsCsv']);
     Route::get('/exports/cars/{carId}/expenses', [ExportController::class, 'carExpensesCsv']);
 });

@@ -24,37 +24,64 @@ const initialPasswordForm = {
     password_confirmation: "",
 };
 
+const initialMailForm = {
+    mail_host: "",
+    mail_port: "587",
+    mail_encryption: "tls",
+    mail_username: "",
+    mail_password: "",
+    mail_from_address: "",
+};
+
 export default function AdminSettingsPage() {
     const { refreshContactSettings } = useSiteSettings();
     const { user, changeEmail, changePassword } = useAuth();
     const [form, setForm] = useState(initialForm);
     const [emailForm, setEmailForm] = useState(initialEmailForm);
     const [passwordForm, setPasswordForm] = useState(initialPasswordForm);
+    const [mailForm, setMailForm] = useState(initialMailForm);
+    const [mailPasswordConfigured, setMailPasswordConfigured] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [emailSaving, setEmailSaving] = useState(false);
     const [passwordSaving, setPasswordSaving] = useState(false);
+    const [mailSaving, setMailSaving] = useState(false);
     const [feedback, setFeedback] = useState({ type: "", message: "" });
     const [emailFeedback, setEmailFeedback] = useState({ type: "", message: "" });
     const [passwordFeedback, setPasswordFeedback] = useState({ type: "", message: "" });
+    const [mailFeedback, setMailFeedback] = useState({ type: "", message: "" });
 
     useEffect(() => {
         async function fetchSettings() {
             try {
                 setLoading(true);
-                const response = await api.get("/admin/settings/contact");
+                const [contactRes, mailRes] = await Promise.all([
+                    api.get("/admin/settings/contact"),
+                    api.get("/admin/settings/mail"),
+                ]);
+
                 setForm({
-                    contact_phone: response.data.contact_phone || "",
-                    contact_email: response.data.contact_email || "",
-                    contact_address: response.data.contact_address || "",
-                    company_vat: response.data.company_vat || "",
-                    contact_map_embed_url: response.data.contact_map_embed_url || "",
+                    contact_phone: contactRes.data.contact_phone || "",
+                    contact_email: contactRes.data.contact_email || "",
+                    contact_address: contactRes.data.contact_address || "",
+                    company_vat: contactRes.data.company_vat || "",
+                    contact_map_embed_url: contactRes.data.contact_map_embed_url || "",
                 });
+
+                setMailForm({
+                    mail_host: mailRes.data.mail_host || "",
+                    mail_port: mailRes.data.mail_port || "587",
+                    mail_encryption: mailRes.data.mail_encryption || "tls",
+                    mail_username: mailRes.data.mail_username || "",
+                    mail_password: "",
+                    mail_from_address: mailRes.data.mail_from_address || "",
+                });
+                setMailPasswordConfigured(mailRes.data.mail_password_configured || false);
             } catch (error) {
                 console.error("Erreur lors du chargement des paramètres :", error);
                 setFeedback({
                     type: "error",
-                    message: "Impossible de charger les coordonnées du site.",
+                    message: "Impossible de charger les paramètres du site.",
                 });
             } finally {
                 setLoading(false);
@@ -73,26 +100,22 @@ export default function AdminSettingsPage() {
 
     function handleChange(event) {
         const { name, value } = event.target;
-        setForm((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+        setForm((prev) => ({ ...prev, [name]: value }));
     }
 
     function handleEmailChange(event) {
         const { name, value } = event.target;
-        setEmailForm((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+        setEmailForm((prev) => ({ ...prev, [name]: value }));
     }
 
     function handlePasswordChange(event) {
         const { name, value } = event.target;
-        setPasswordForm((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+        setPasswordForm((prev) => ({ ...prev, [name]: value }));
+    }
+
+    function handleMailChange(event) {
+        const { name, value } = event.target;
+        setMailForm((prev) => ({ ...prev, [name]: value }));
     }
 
     async function handleSubmit(event) {
@@ -124,10 +147,7 @@ export default function AdminSettingsPage() {
             setEmailSaving(true);
             setEmailFeedback({ type: "", message: "" });
             await changeEmail(emailForm);
-            setEmailForm((prev) => ({
-                ...prev,
-                current_password: "",
-            }));
+            setEmailForm((prev) => ({ ...prev, current_password: "" }));
             setEmailFeedback({
                 type: "success",
                 message: "Adresse e-mail de connexion mise à jour avec succès.",
@@ -174,6 +194,41 @@ export default function AdminSettingsPage() {
         }
     }
 
+    async function handleMailSubmit(event) {
+        event.preventDefault();
+
+        try {
+            setMailSaving(true);
+            setMailFeedback({ type: "", message: "" });
+
+            const payload = { ...mailForm };
+            if (!payload.mail_password) {
+                delete payload.mail_password;
+            }
+
+            await api.put("/admin/settings/mail", payload);
+            setMailPasswordConfigured(true);
+            setMailForm((prev) => ({ ...prev, mail_password: "" }));
+            setMailFeedback({
+                type: "success",
+                message: "Configuration mail enregistrée.",
+            });
+        } catch (error) {
+            console.error("Erreur lors de l'enregistrement de la config mail :", error);
+            const errors = error.response?.data?.errors;
+            const firstError = errors ? Object.values(errors)[0]?.[0] : null;
+            setMailFeedback({
+                type: "error",
+                message:
+                    firstError ||
+                    error.response?.data?.message ||
+                    "Impossible d'enregistrer la configuration mail.",
+            });
+        } finally {
+            setMailSaving(false);
+        }
+    }
+
     return (
         <main className="page admin-page">
             <div className="page-backlinks admin-print-hidden">
@@ -186,7 +241,7 @@ export default function AdminSettingsPage() {
                 <div>
                     <h1>Paramètres</h1>
                     <p className="admin-page__subtitle">
-                        Coordonnées du vendeur, adresse, carte et sécurité du compte admin.
+                        Coordonnées du vendeur, configuration mail et sécurité du compte admin.
                     </p>
                 </div>
             </div>
@@ -240,6 +295,87 @@ export default function AdminSettingsPage() {
                             </button>
                         </div>
                     </form>
+
+                    <section className="admin-settings-panel">
+                        <div className="admin-settings-panel__header">
+                            <h2>Configuration de l'envoi de mails</h2>
+                            <p>
+                                Paramètres SMTP pour l'envoi des mails de réinitialisation de mot de passe.
+                                Ces informations sont stockées en base de données — jamais dans le code.
+                            </p>
+                        </div>
+
+                        {mailFeedback.message && (
+                            <p className={`admin-feedback admin-feedback--${mailFeedback.type}`}>
+                                {mailFeedback.message}
+                            </p>
+                        )}
+
+                        <form className="admin-form" onSubmit={handleMailSubmit}>
+                            <input
+                                name="mail_host"
+                                placeholder="Serveur SMTP (ex: smtp-mail.outlook.com)"
+                                value={mailForm.mail_host}
+                                onChange={handleMailChange}
+                                required
+                            />
+
+                            <input
+                                name="mail_port"
+                                type="number"
+                                placeholder="Port (ex: 587)"
+                                value={mailForm.mail_port}
+                                onChange={handleMailChange}
+                                required
+                            />
+
+                            <select
+                                name="mail_encryption"
+                                value={mailForm.mail_encryption}
+                                onChange={handleMailChange}
+                            >
+                                <option value="tls">TLS (port 587 — recommandé)</option>
+                                <option value="ssl">SSL (port 465)</option>
+                                <option value="none">Aucun chiffrement</option>
+                            </select>
+
+                            <input
+                                name="mail_username"
+                                type="email"
+                                placeholder="Adresse e-mail expéditeur (ex: ton@outlook.com)"
+                                value={mailForm.mail_username}
+                                onChange={handleMailChange}
+                                required
+                            />
+
+                            <input
+                                name="mail_password"
+                                type="password"
+                                placeholder={
+                                    mailPasswordConfigured
+                                        ? "Mot de passe configuré — laisser vide pour le conserver"
+                                        : "Mot de passe du compte mail"
+                                }
+                                value={mailForm.mail_password}
+                                onChange={handleMailChange}
+                            />
+
+                            <input
+                                name="mail_from_address"
+                                type="email"
+                                placeholder="Adresse expéditeur affichée dans le mail reçu"
+                                value={mailForm.mail_from_address}
+                                onChange={handleMailChange}
+                                required
+                            />
+
+                            <div className="admin-form__actions">
+                                <button type="submit" className="admin-button" disabled={mailSaving}>
+                                    {mailSaving ? "Enregistrement..." : "Enregistrer la configuration mail"}
+                                </button>
+                            </div>
+                        </form>
+                    </section>
 
                     <section className="admin-settings-panel">
                         <div className="admin-settings-panel__header">

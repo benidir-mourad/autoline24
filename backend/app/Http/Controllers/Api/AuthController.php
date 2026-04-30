@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AppSetting;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -44,6 +45,8 @@ class AuthController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'email'],
         ]);
+
+        $this->applyMailSettings();
 
         Password::sendResetLink($validated);
 
@@ -169,5 +172,28 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Déconnexion réussie.',
         ]);
+    }
+
+    private function applyMailSettings(): void
+    {
+        $settings = AppSetting::whereIn('key', [
+            'mail_host', 'mail_port', 'mail_encryption',
+            'mail_username', 'mail_password', 'mail_from_address',
+        ])->pluck('value', 'key')->all();
+
+        if (empty($settings['mail_host'])) {
+            return;
+        }
+
+        Config::set('mail.default', 'smtp');
+        Config::set('mail.mailers.smtp.host', $settings['mail_host']);
+        Config::set('mail.mailers.smtp.port', (int) ($settings['mail_port'] ?? 587));
+        Config::set('mail.mailers.smtp.encryption', $settings['mail_encryption'] === 'none' ? null : ($settings['mail_encryption'] ?? 'tls'));
+        Config::set('mail.mailers.smtp.username', $settings['mail_username'] ?? '');
+        Config::set('mail.mailers.smtp.password', $settings['mail_password'] ?? '');
+        Config::set('mail.from.address', $settings['mail_from_address'] ?? '');
+        Config::set('mail.from.name', config('app.name'));
+
+        app('mail.manager')->purge('smtp');
     }
 }
