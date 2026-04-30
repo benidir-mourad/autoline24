@@ -68,6 +68,26 @@
     color: #5eead4;
 }
 
+.navbar__theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.75);
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease;
+    flex-shrink: 0;
+}
+
+.navbar__theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
 @media (max-width: 800px) {
     .navbar {
         height: auto;
