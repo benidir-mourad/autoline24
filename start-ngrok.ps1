@@ -1,30 +1,36 @@
-# Expose l'appli en local via ngrok (2 tunnels : backend + frontend)
+# Expose l'app via ngrok (un seul tunnel sur le backend Laravel)
 # Prerequis : ngrok installe et authentifie (ngrok config add-authtoken TON_TOKEN)
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ngrokConfig = "$root\ngrok.yml"
 
-# Ecrire la config ngrok temporaire
-@"
-version: "3"
-tunnels:
-  backend:
-    addr: 8000
-    proto: http
-  frontend:
-    addr: 5173
-    proto: http
-"@ | Set-Content -Path $ngrokConfig -Encoding utf8
-
-Write-Host "Lancement de ngrok (2 tunnels)..." -ForegroundColor Cyan
-Write-Host "Les URLs s'afficheront dans la fenetre ngrok." -ForegroundColor Yellow
+Write-Host "=== Autoline24 - Partage via ngrok ===" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Apres avoir recupere les URLs ngrok :" -ForegroundColor White
-Write-Host "  1. Cree frontend\.env.local avec : VITE_API_URL=https://BACKEND.ngrok-free.app/api"
-Write-Host "  2. Mets a jour backend\.env :"
-Write-Host "       FRONTEND_URL=https://FRONTEND.ngrok-free.app"
-Write-Host "       CORS_ALLOWED_ORIGINS=https://FRONTEND.ngrok-free.app"
-Write-Host "  3. Relance php artisan serve et npm run dev"
+Write-Host "Etape 1 : Build du frontend..." -ForegroundColor Yellow
+Set-Location "$root\frontend"
+npm run build
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Echec du build frontend." -ForegroundColor Red
+    exit 1
+}
+Set-Location $root
+
+Write-Host ""
+Write-Host "Etape 2 : Demarrage de Laravel..." -ForegroundColor Yellow
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$root\backend'; php artisan serve"
+Start-Sleep -Seconds 2
+
+Write-Host ""
+Write-Host "Etape 3 : Lancement du tunnel ngrok..." -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Une URL publique va s'afficher (ex: https://abc123.ngrok-free.app)" -ForegroundColor Green
+Write-Host "Copie-la et mets a jour backend\.env :" -ForegroundColor White
+Write-Host "  APP_URL=https://abc123.ngrok-free.app" -ForegroundColor Gray
+Write-Host "  FRONTEND_URL=https://abc123.ngrok-free.app" -ForegroundColor Gray
+Write-Host "  CORS_ALLOWED_ORIGINS=https://abc123.ngrok-free.app" -ForegroundColor Gray
+Write-Host ""
+Write-Host "Puis cree frontend\.env.local :" -ForegroundColor White
+Write-Host "  VITE_API_URL=https://abc123.ngrok-free.app/api" -ForegroundColor Gray
+Write-Host "  Relance : npm run build dans le dossier frontend" -ForegroundColor Gray
 Write-Host ""
 
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "ngrok start --all --config '$ngrokConfig'"
+ngrok http 8000
