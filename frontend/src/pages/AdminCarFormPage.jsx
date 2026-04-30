@@ -96,6 +96,7 @@ export default function AdminCarFormPage() {
     const [options, setOptions] = useState([]);
     const [selectedOptionIds, setSelectedOptionIds] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState("");
     const [isDragOver, setIsDragOver] = useState(false);
     const [newOptionName, setNewOptionName] = useState("");
     const [expenseForm, setExpenseForm] = useState(initialExpenseForm);
@@ -103,6 +104,7 @@ export default function AdminCarFormPage() {
     const [expenseFilterCategory, setExpenseFilterCategory] = useState("all");
 
     const [loading, setLoading] = useState(false);
+    const [formSaving, setFormSaving] = useState(false);
     const [imageLoading, setImageLoading] = useState(false);
     const [optionsLoading, setOptionsLoading] = useState(false);
     const [optionCreateLoading, setOptionCreateLoading] = useState(false);
@@ -122,11 +124,6 @@ export default function AdminCarFormPage() {
         message: "",
     });
     const [confirmLoading, setConfirmLoading] = useState(false);
-
-    const previewUrl = useMemo(() => {
-        if (!selectedFile) return "";
-        return URL.createObjectURL(selectedFile);
-    }, [selectedFile]);
 
     const financialSummary = useMemo(() => {
         const purchasePrice = Number(carSummary?.purchase_price ?? form.purchase_price ?? 0);
@@ -176,12 +173,14 @@ export default function AdminCarFormPage() {
     );
 
     useEffect(() => {
-        return () => {
-            if (previewUrl) {
-                URL.revokeObjectURL(previewUrl);
-            }
-        };
-    }, [previewUrl]);
+        if (!selectedFile) {
+            setPreviewUrl("");
+            return;
+        }
+        const url = URL.createObjectURL(selectedFile);
+        setPreviewUrl(url);
+        return () => URL.revokeObjectURL(url);
+    }, [selectedFile]);
 
     function setScopedFeedback(setter, type, message) {
         setter({ type, message });
@@ -377,6 +376,7 @@ export default function AdminCarFormPage() {
         event.preventDefault();
 
         try {
+            setFormSaving(true);
             setScopedFeedback(setFormFeedback, "", "");
             const payload = {
                 ...form,
@@ -393,11 +393,9 @@ export default function AdminCarFormPage() {
                 carId = response.data.car.id;
             }
 
-            if (selectedOptionIds.length > 0 || isEdit) {
-                await api.put(`/admin/cars/${carId}/options`, {
-                    option_ids: selectedOptionIds.map((optionId) => Number(optionId)),
-                });
-            }
+            await api.put(`/admin/cars/${carId}/options`, {
+                option_ids: selectedOptionIds.map((optionId) => Number(optionId)),
+            });
 
             if (selectedFile) {
                 const formData = new FormData();
@@ -415,11 +413,15 @@ export default function AdminCarFormPage() {
             navigate("/admin/cars");
         } catch (error) {
             console.error(error);
+            const errors = error.response?.data?.errors;
+            const firstError = errors ? Object.values(errors)[0]?.[0] : null;
             setScopedFeedback(
                 setFormFeedback,
                 "error",
-                error.response?.data?.message || "Erreur lors de l'enregistrement."
+                firstError || error.response?.data?.message || "Erreur lors de l'enregistrement."
             );
+        } finally {
+            setFormSaving(false);
         }
     }
 
@@ -1157,8 +1159,8 @@ export default function AdminCarFormPage() {
                 />
 
                 <div className="admin-form__actions">
-                    <button type="submit" className="admin-button">
-                        {isEdit ? "Enregistrer les modifications" : "Ajouter la voiture"}
+                    <button type="submit" className="admin-button" disabled={formSaving}>
+                        {formSaving ? "Enregistrement..." : isEdit ? "Enregistrer les modifications" : "Ajouter la voiture"}
                     </button>
                 </div>
             </form>

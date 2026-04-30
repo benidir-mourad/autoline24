@@ -49,11 +49,11 @@ class OptionController extends Controller
         $car = Car::findOrFail($carId);
 
         $validated = $request->validate([
-            'option_ids' => ['required', 'array'],
+            'option_ids' => ['nullable', 'array'],
             'option_ids.*' => ['integer', 'exists:options,id'],
         ]);
 
-        $car->options()->sync($validated['option_ids']);
+        $car->options()->sync($validated['option_ids'] ?? []);
 
         return response()->json([
             'message' => 'Options de la voiture mises à jour avec succès.',

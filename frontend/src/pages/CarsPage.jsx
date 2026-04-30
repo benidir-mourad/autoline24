@@ -46,11 +46,14 @@ export default function CarsPage() {
         const urlFilters = getInitialFilters(searchParams);
         const urlPage = getInitialPage(searchParams);
 
-        setFilters(urlFilters);
-        setMeta((prev) => ({
-            ...prev,
-            current_page: urlPage,
-        }));
+        setFilters((prev) => {
+            if (JSON.stringify(prev) === JSON.stringify(urlFilters)) return prev;
+            return urlFilters;
+        });
+        setMeta((prev) => {
+            if (prev.current_page === urlPage) return prev;
+            return { ...prev, current_page: urlPage };
+        });
     }, [searchParams]);
 
     const fetchCars = useCallback(async (customFilters, page = 1) => {

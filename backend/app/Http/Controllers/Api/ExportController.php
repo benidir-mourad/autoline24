@@ -14,6 +14,7 @@ class ExportController extends Controller
 
         return response()->streamDownload(function () use ($cars) {
             $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
 
             fputcsv($handle, [
                 'ID',
@@ -59,6 +60,7 @@ class ExportController extends Controller
 
         return response()->streamDownload(function () use ($car) {
             $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
 
             fputcsv($handle, [
                 'Voiture',
