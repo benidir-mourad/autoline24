@@ -1,11 +1,12 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink } from "react-router-dom";
 import { useTheme } from "../hooks/useTheme";
 import { useSiteSettings } from "../hooks/useSiteSettings";
 import "../styles/navbar.css";
 
 function SunIcon() {
     return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="5"/>
             <line x1="12" y1="1" x2="12" y2="3"/>
             <line x1="12" y1="21" x2="12" y2="23"/>
@@ -21,7 +22,7 @@ function SunIcon() {
 
 function MoonIcon() {
     return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
     );
@@ -30,19 +31,32 @@ function MoonIcon() {
 export default function Navbar() {
     const { contactSettings } = useSiteSettings();
     const { theme, toggle } = useTheme();
+    const [scrolled, setScrolled] = useState(false);
+
+    useEffect(() => {
+        function onScroll() {
+            setScrolled(window.scrollY > 12);
+        }
+        window.addEventListener("scroll", onScroll, { passive: true });
+        return () => window.removeEventListener("scroll", onScroll);
+    }, []);
 
     return (
-        <nav className="navbar">
-            <Link to="/" className="navbar__brand">
-                <div className="navbar__logo">Autoline24</div>
-                <div className="navbar__contact">{contactSettings.contact_phone}</div>
-            </Link>
+        <nav className={`navbar${scrolled ? " navbar--scrolled" : ""}`}>
+            <NavLink to="/" className="navbar__brand" end>
+                <div className="navbar__logo">
+                    Autoline<span>24</span>
+                </div>
+                {contactSettings.contact_phone && (
+                    <div className="navbar__contact">{contactSettings.contact_phone}</div>
+                )}
+            </NavLink>
 
             <div className="navbar__links">
-                <Link to="/">Accueil</Link>
-                <Link to="/cars">Voitures</Link>
-                <Link to="/contact">Contact</Link>
-                <Link to="/admin">Admin</Link>
+                <NavLink to="/" end>Accueil</NavLink>
+                <NavLink to="/contact">Contact</NavLink>
+                <NavLink to="/admin">Admin</NavLink>
+                <NavLink to="/cars" className="navbar__cta">Nos voitures</NavLink>
                 <button
                     className="navbar__theme-toggle"
                     onClick={toggle}
