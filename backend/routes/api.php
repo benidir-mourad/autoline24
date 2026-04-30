@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CarController;
 use App\Http\Controllers\Api\CarExpenseController;
 use App\Http\Controllers\Api\CarImageController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ExportController;
 use App\Http\Controllers\Api\OptionController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,7 @@ Route::post('/admin/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/options', [OptionController::class, 'index']);
 Route::get('/brands', [CarController::class, 'brands']);
 Route::get('/settings/contact', [AppSettingController::class, 'publicContact']);
+Route::post('/contact', [ContactController::class, 'send']);
 
 /*
 |--------------------------------------------------------------------------

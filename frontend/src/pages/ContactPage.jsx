@@ -1,9 +1,57 @@
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import api from "../services/api";
 import { useSiteSettings } from "../hooks/useSiteSettings";
 import "../styles/contact.css";
 
+const initialForm = { name: "", email: "", message: "" };
+
 export default function ContactPage() {
     const { contactSettings } = useSiteSettings();
+    const [searchParams] = useSearchParams();
+    const formRef = useRef(null);
+
+    const carLabel = searchParams.get("car") || "";
+    const carRef   = searchParams.get("ref") || "";
+    const fullLabel = [carLabel, carRef ? `(Réf. ${carRef})` : ""].filter(Boolean).join(" ");
+
+    const [form, setForm] = useState(() => ({
+        ...initialForm,
+        message: fullLabel
+            ? `Bonjour,\n\nJe suis intéressé(e) par votre ${fullLabel}.\n\nPourriez-vous me contacter pour plus d'informations ?\n\nCordialement`
+            : "",
+    }));
+    const [status, setStatus] = useState({ type: "", message: "" });
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (fullLabel && formRef.current) {
+            formRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    }, [fullLabel]);
+
+    function handleChange(e) {
+        setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+    }
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        try {
+            setLoading(true);
+            setStatus({ type: "", message: "" });
+            await api.post("/contact", {
+                ...form,
+                car_label: fullLabel || undefined,
+            });
+            setStatus({ type: "success", message: "Message envoyé ! Nous vous répondrons dans les plus brefs délais." });
+            setForm(initialForm);
+        } catch (error) {
+            const msg = error.response?.data?.message || "Une erreur est survenue. Veuillez réessayer.";
+            setStatus({ type: "error", message: msg });
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <main className="page contact-page">
@@ -26,10 +74,7 @@ export default function ContactPage() {
                     <a className="page-button" href={`tel:${contactSettings.contact_phone}`}>
                         Appeler
                     </a>
-                    <a
-                        className="page-button page-button--secondary"
-                        href={`mailto:${contactSettings.contact_email}`}
-                    >
+                    <a className="page-button page-button--secondary" href={`mailto:${contactSettings.contact_email}`}>
                         Envoyer un e-mail
                     </a>
                 </div>
@@ -38,27 +83,84 @@ export default function ContactPage() {
             <section className="contact-page__grid">
                 <article className="contact-page__card">
                     <span>Téléphone</span>
-                    <a href={`tel:${contactSettings.contact_phone}`}>
-                        {contactSettings.contact_phone}
-                    </a>
+                    <a href={`tel:${contactSettings.contact_phone}`}>{contactSettings.contact_phone}</a>
                 </article>
-
                 <article className="contact-page__card">
                     <span>E-mail</span>
-                    <a href={`mailto:${contactSettings.contact_email}`}>
-                        {contactSettings.contact_email}
-                    </a>
+                    <a href={`mailto:${contactSettings.contact_email}`}>{contactSettings.contact_email}</a>
                 </article>
-
                 <article className="contact-page__card">
                     <span>Adresse</span>
                     <strong>{contactSettings.contact_address}</strong>
                 </article>
-
                 <article className="contact-page__card">
                     <span>TVA</span>
                     <strong>{contactSettings.company_vat || "À compléter"}</strong>
                 </article>
+            </section>
+
+            {/* ── Contact form ── */}
+            <section className="contact-form-section" ref={formRef}>
+                <div className="contact-form-section__header">
+                    <h2>Envoyer un message</h2>
+                    {fullLabel && (
+                        <div className="contact-form-section__prefill-badge">
+                            Demande au sujet de : <strong>{fullLabel}</strong>
+                        </div>
+                    )}
+                </div>
+
+                <form className="contact-form" onSubmit={handleSubmit}>
+                    <div className="contact-form__row">
+                        <div className="contact-form__field">
+                            <label htmlFor="cf-name">Nom *</label>
+                            <input
+                                id="cf-name"
+                                type="text"
+                                name="name"
+                                placeholder="Votre nom"
+                                value={form.name}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                        <div className="contact-form__field">
+                            <label htmlFor="cf-email">E-mail *</label>
+                            <input
+                                id="cf-email"
+                                type="email"
+                                name="email"
+                                placeholder="votre@email.com"
+                                value={form.email}
+                                onChange={handleChange}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="contact-form__field">
+                        <label htmlFor="cf-message">Message *</label>
+                        <textarea
+                            id="cf-message"
+                            name="message"
+                            rows={6}
+                            placeholder="Votre message..."
+                            value={form.message}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+
+                    {status.message && (
+                        <div className={`contact-form__feedback contact-form__feedback--${status.type}`}>
+                            {status.message}
+                        </div>
+                    )}
+
+                    <button type="submit" className="page-button page-button--secondary contact-form__submit" disabled={loading}>
+                        {loading ? "Envoi en cours…" : "Envoyer le message"}
+                    </button>
+                </form>
             </section>
 
             <section className="contact-page__map">
