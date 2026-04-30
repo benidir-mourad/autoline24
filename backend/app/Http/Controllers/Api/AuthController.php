@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -45,9 +47,27 @@ class AuthController extends Controller
 
         Password::sendResetLink($validated);
 
-        return response()->json([
+        $response = [
             'message' => 'Si un compte existe avec cet e-mail, un lien de réinitialisation a été envoyé.',
-        ]);
+        ];
+
+        if (app()->isLocal() && Config::get('mail.default') === 'log') {
+            $user = User::where('email', $validated['email'])->first();
+
+            if ($user) {
+                $token = Password::broker()->createToken($user);
+                $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
+
+                $response['debug_reset_url'] = sprintf(
+                    '%s/admin/reset-password?token=%s&email=%s',
+                    $frontendUrl,
+                    urlencode($token),
+                    urlencode($user->email)
+                );
+            }
+        }
+
+        return response()->json($response);
     }
 
     public function resetPassword(Request $request)

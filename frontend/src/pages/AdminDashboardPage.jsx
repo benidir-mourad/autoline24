@@ -36,6 +36,18 @@ export default function AdminDashboardPage() {
                 </div>
             </div>
 
+            <div className="admin-dashboard-shortcuts">
+                <Link to="/admin/cars" className="admin-button admin-dashboard-shortcuts__button">
+                    Voitures
+                </Link>
+                <Link
+                    to="/admin/settings"
+                    className="admin-button admin-button--secondary admin-dashboard-shortcuts__button"
+                >
+                    Paramètres
+                </Link>
+            </div>
+
             <section className="admin-dashboard-grid">
                 <Link to="/admin/cars" className="admin-dashboard-card">
                     <span className="admin-dashboard-card__eyebrow">Stock</span>

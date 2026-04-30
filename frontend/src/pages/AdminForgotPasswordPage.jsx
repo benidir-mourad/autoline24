@@ -5,6 +5,7 @@ import api from "../services/api";
 export default function AdminForgotPasswordPage() {
     const [email, setEmail] = useState("");
     const [feedback, setFeedback] = useState({ type: "", message: "" });
+    const [debugResetUrl, setDebugResetUrl] = useState("");
     const [loading, setLoading] = useState(false);
 
     async function handleSubmit(event) {
@@ -13,8 +14,10 @@ export default function AdminForgotPasswordPage() {
         try {
             setLoading(true);
             setFeedback({ type: "", message: "" });
+            setDebugResetUrl("");
             const response = await api.post("/admin/forgot-password", { email });
             setFeedback({ type: "success", message: response.data.message });
+            setDebugResetUrl(response.data.debug_reset_url || "");
         } catch (error) {
             console.error("Erreur lors de la demande de réinitialisation :", error);
             setFeedback({
@@ -38,11 +41,11 @@ export default function AdminForgotPasswordPage() {
                 <span className="page-eyebrow">Admin</span>
                 <h1>Mot de passe oublié</h1>
                 <p>
-                    Saisissez l’adresse e-mail de votre compte admin pour recevoir un lien
+                    Saisissez l'adresse e-mail de votre compte admin pour recevoir un lien
                     de réinitialisation.
                 </p>
 
-                <form className="filters" onSubmit={handleSubmit}>
+                <form className="filters admin-login-form" onSubmit={handleSubmit}>
                     <input
                         type="email"
                         name="email"
@@ -60,6 +63,14 @@ export default function AdminForgotPasswordPage() {
                     <p className={`admin-feedback admin-feedback--${feedback.type}`}>
                         {feedback.message}
                     </p>
+                )}
+
+                {debugResetUrl && (
+                    <div className="page-actions">
+                        <a href={debugResetUrl} className="page-button page-button--secondary">
+                            Ouvrir le lien de réinitialisation
+                        </a>
+                    </div>
                 )}
             </section>
         </main>
