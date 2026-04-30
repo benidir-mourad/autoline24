@@ -139,7 +139,7 @@ p {
 
 .page-button {
     background: var(--dark);
-    color: #fff;
+    color: var(--bg);
     box-shadow: var(--shadow-sm);
 }
 

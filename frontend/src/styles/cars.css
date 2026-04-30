@@ -142,7 +142,7 @@
 
 .filters__actions button:first-child {
     background: var(--dark);
-    color: #fff;
+    color: var(--bg);
 }
 
 .filters__actions button:first-child:hover {
@@ -249,7 +249,7 @@
     gap: 6px;
     border: none;
     background: var(--dark);
-    color: #fff;
+    color: var(--bg);
     padding: 5px 12px;
     border-radius: 999px;
     cursor: pointer;
@@ -320,7 +320,7 @@
 
 .cars-pagination button:hover:not(:disabled) {
     background: var(--dark);
-    color: #fff;
+    color: var(--bg);
     border-color: var(--dark);
 }
 
