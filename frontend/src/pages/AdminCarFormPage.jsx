@@ -85,6 +85,42 @@ function downloadBlob(blob, filename) {
     window.URL.revokeObjectURL(url);
 }
 
+function ChevronIcon() {
+    return (
+        <svg className="admin-accordion__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9" />
+        </svg>
+    );
+}
+
+function AccordionSection({ title, badge, actions, open, onToggle, children }) {
+    return (
+        <div className={`admin-accordion${open ? " is-open" : ""}`}>
+            <button type="button" className="admin-accordion__header" onClick={onToggle}>
+                <div className="admin-accordion__left">
+                    <span className="admin-accordion__title">{title}</span>
+                    {badge && <span className="admin-accordion__badge">{badge}</span>}
+                </div>
+                <div className="admin-accordion__right">
+                    {actions && (
+                        <div className="admin-accordion__actions" onClick={(e) => e.stopPropagation()}>
+                            {actions}
+                        </div>
+                    )}
+                    <ChevronIcon />
+                </div>
+            </button>
+            <div className="admin-accordion__wrap">
+                <div className="admin-accordion__body">
+                    <div className="admin-accordion__body-inner">
+                        {children}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function AdminCarFormPage() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -126,6 +162,16 @@ export default function AdminCarFormPage() {
         message: "",
     });
     const [confirmLoading, setConfirmLoading] = useState(false);
+    const [openSections, setOpenSections] = useState({
+        info: true,
+        expenses: true,
+        options: true,
+        images: true,
+    });
+
+    function toggleSection(key) {
+        setOpenSections((s) => ({ ...s, [key]: !s[key] }));
+    }
 
     const financialSummary = useMemo(() => {
         const purchasePrice = Number(carSummary?.purchase_price ?? form.purchase_price ?? 0);
@@ -906,32 +952,23 @@ export default function AdminCarFormPage() {
                         </div>
                     </section>
 
-                    <section className="admin-expenses-section">
-                        <div className="admin-expenses-section__header">
-                            <div>
-                                <h2>Suivi des frais</h2>
-                                <p>
-                                    Suivez les dépenses liées à cette voiture pour garder une vue
-                                    claire sur le coût réel.
-                                </p>
-                            </div>
-
-                            <div className="admin-expenses-section__tools admin-print-hidden">
-                                <select
-                                    value={expenseFilterCategory}
-                                    onChange={(event) =>
-                                        setExpenseFilterCategory(event.target.value)
-                                    }
-                                >
-                                    <option value="all">Toutes les catégories</option>
-                                    {expenseCategories.map((category) => (
-                                        <option key={category} value={category}>
-                                            {category}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
+                    <AccordionSection
+                        title="Suivi des frais"
+                        badge={`${expenses.length} frais · ${formatCurrency(financialSummary.totalExpenses)}`}
+                        open={openSections.expenses}
+                        onToggle={() => toggleSection("expenses")}
+                        actions={
+                            <select
+                                value={expenseFilterCategory}
+                                onChange={(e) => setExpenseFilterCategory(e.target.value)}
+                            >
+                                <option value="all">Toutes les catégories</option>
+                                {expenseCategories.map((cat) => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                        }
+                    >
 
                         {expenseFeedback.message && (
                             <p className={`admin-feedback admin-feedback--${expenseFeedback.type}`}>
@@ -1096,10 +1133,15 @@ export default function AdminCarFormPage() {
                                     : "Aucun frais dans cette catégorie pour le moment."}
                             </p>
                         )}
-                    </section>
+                    </AccordionSection>
                 </>
             )}
 
+            <AccordionSection
+                title="Informations"
+                open={openSections.info}
+                onToggle={() => toggleSection("info")}
+            >
             <form className="admin-form" onSubmit={handleSubmit}>
                 <ComboboxSelect
                     value={form.brand}
@@ -1177,22 +1219,24 @@ export default function AdminCarFormPage() {
                     </button>
                 </div>
             </form>
-            <section className="admin-options-section">
-                <div className="admin-options-section__header">
-                    <h2>Options</h2>
+            </AccordionSection>
 
-                    {isEdit && (
-                        <button
-                            type="button"
-                            className="admin-button"
-                            onClick={handleSaveOptionsOnly}
-                            disabled={optionsLoading}
-                        >
-                            {optionsLoading ? "Enregistrement..." : "Mettre à jour les options"}
-                        </button>
-                    )}
-                </div>
-
+            <AccordionSection
+                title="Options"
+                badge={`${selectedOptionIds.length} sélectionnée(s)`}
+                open={openSections.options}
+                onToggle={() => toggleSection("options")}
+                actions={isEdit && (
+                    <button
+                        type="button"
+                        className="admin-button"
+                        onClick={handleSaveOptionsOnly}
+                        disabled={optionsLoading}
+                    >
+                        {optionsLoading ? "Enregistrement..." : "Mettre à jour les options"}
+                    </button>
+                )}
+            >
                 <form className="admin-option-create" onSubmit={handleCreateOption}>
                     <input
                         type="text"
@@ -1240,20 +1284,14 @@ export default function AdminCarFormPage() {
                 ) : (
                     <p>Aucune option disponible.</p>
                 )}
-            </section>
+            </AccordionSection>
 
-            <section className="admin-images-section">
-                    <div className="admin-images-section__header">
-                        <div>
-                            <h2>Images</h2>
-                            <p>
-                                {isEdit
-                                    ? "Glissez une image ici ou cliquez pour en sélectionner une."
-                                    : "Ajoutez déjà une image principale. Elle sera envoyée juste après la création de la voiture."}
-                            </p>
-                        </div>
-                    </div>
-
+            <AccordionSection
+                title="Images"
+                badge={images.length > 0 ? `${images.length} photo(s)` : undefined}
+                open={openSections.images}
+                onToggle={() => toggleSection("images")}
+            >
                     {imageFeedback.message && (
                         <p className={`admin-feedback admin-feedback--${imageFeedback.type}`}>
                             {imageFeedback.message}
@@ -1378,7 +1416,7 @@ export default function AdminCarFormPage() {
                                 : "Aucune image préparée pour le moment."}
                         </p>
                     )}
-                </section>
+            </AccordionSection>
 
             <ConfirmDialog
                 open={confirmState.open}
