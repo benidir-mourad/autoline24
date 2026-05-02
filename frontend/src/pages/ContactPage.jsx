@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import api from "../services/api";
 import { useSiteSettings } from "../hooks/useSiteSettings";
 import "../styles/contact.css";
@@ -53,11 +54,23 @@ export default function ContactPage() {
         }
     }
 
+    const siteUrl = window.location.origin;
+    const metaDesc = "Contactez Autoline24 pour toute question sur nos véhicules. Appelez-nous, envoyez un e-mail ou venez nous rendre visite.";
+
     return (
         <main className="page contact-page">
+            <Helmet>
+                <title>Contact | Autoline24</title>
+                <meta name="description" content={metaDesc} />
+                <link rel="canonical" href={`${siteUrl}/contact`} />
+                <meta property="og:type" content="website" />
+                <meta property="og:title" content="Contact | Autoline24" />
+                <meta property="og:description" content={metaDesc} />
+                <meta property="og:url" content={`${siteUrl}/contact`} />
+                <meta name="twitter:card" content="summary" />
+            </Helmet>
             <div className="page-backlinks">
-                <Link to="/">Accueil</Link>
-                <Link to="/cars">Voir les voitures</Link>
+                <Link to="/cars">Nos voitures</Link>
             </div>
 
             <section className="contact-page__hero">

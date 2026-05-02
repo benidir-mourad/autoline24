@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import api from "../services/api";
 import CarCard from "../components/CarCard";
 import FilterBar from "../components/FilterBar";
@@ -218,10 +219,38 @@ export default function CarsPage() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    const siteUrl = window.location.origin;
+    const metaDesc = "Achat, vente, reprise, import et export de voitures d'occasion et neuves en Belgique. Parcourez notre catalogue en ligne.";
+    const autoDealerSchema = {
+        "@context": "https://schema.org",
+        "@type": "AutoDealer",
+        "name": "Autoline24",
+        "description": "Achat, vente, reprise, import et export de voitures d'occasion et neuves.",
+        "url": siteUrl,
+        ...(contactSettings.contact_phone && { telephone: contactSettings.contact_phone }),
+        ...(contactSettings.contact_email && { email: contactSettings.contact_email }),
+        ...(contactSettings.contact_address && {
+            address: { "@type": "PostalAddress", streetAddress: contactSettings.contact_address },
+        }),
+    };
+
     return (
         <main className="page cars-page">
+            <Helmet>
+                <title>Voitures d'occasion | Autoline24</title>
+                <meta name="description" content={metaDesc} />
+                <link rel="canonical" href={`${siteUrl}/cars`} />
+                <meta property="og:type" content="website" />
+                <meta property="og:title" content="Voitures d'occasion | Autoline24" />
+                <meta property="og:description" content={metaDesc} />
+                <meta property="og:url" content={`${siteUrl}/cars`} />
+                <meta name="twitter:card" content="summary" />
+                <script type="application/ld+json">{JSON.stringify(autoDealerSchema)}</script>
+            </Helmet>
             <div className="cars-page__header">
                 <div>
+                    <p className="cars-page__tagline">Achat · Vente · Reprise · Import · Export — Occasion &amp; Neuve</p>
+                    <p className="cars-page__tagline-sub">Vous êtes au bon endroit</p>
                     <h1>Nos voitures</h1>
                     <p>Découvrez notre sélection de véhicules d'occasion disponibles.</p>
                 </div>

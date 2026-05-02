@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import api from "../services/api";
 import { useSiteSettings } from "../hooks/useSiteSettings";
 import "../styles/car-detail.css";
@@ -87,8 +88,61 @@ export default function CarDetailPage() {
     if (loading) return <main className="page"><p>Chargement...</p></main>;
     if (!car) return <main className="page"><p>Voiture introuvable.</p></main>;
 
+    const siteUrl = window.location.origin;
+    const pageUrl = `${siteUrl}/cars/${id}`;
+    const pageTitle = `${car.brand} ${car.model}${car.year ? ` ${car.year}` : ""} — ${formattedPrice} | Autoline24`;
+    const pageDesc = [
+        `${car.brand} ${car.model}${car.version ? ` ${car.version}` : ""} ${car.year}`,
+        `${Number(car.mileage).toLocaleString("fr-BE")} km`,
+        car.fuel_type,
+        car.transmission,
+        car.description?.slice(0, 80),
+    ].filter(Boolean).join(", ").slice(0, 155);
+
+    const availabilityMap = {
+        available: "https://schema.org/InStock",
+        reserved: "https://schema.org/PreOrder",
+        sold: "https://schema.org/SoldOut",
+    };
+    const carSchema = {
+        "@context": "https://schema.org",
+        "@type": "Car",
+        name: `${car.brand} ${car.model}`,
+        brand: { "@type": "Brand", name: car.brand },
+        model: car.model,
+        ...(car.year && { vehicleModelDate: String(car.year) }),
+        ...(car.mileage && { mileageFromOdometer: { "@type": "QuantitativeValue", value: Number(car.mileage), unitCode: "KMT" } }),
+        ...(car.fuel_type && { fuelType: car.fuel_type }),
+        ...(car.transmission && { vehicleTransmission: car.transmission }),
+        ...(car.color && { color: car.color }),
+        ...(car.power_hp && { vehicleEngine: { "@type": "EngineSpecification", enginePower: `${car.power_hp} ch` } }),
+        ...(car.description && { description: car.description }),
+        ...(selectedImage && { image: selectedImage }),
+        offers: {
+            "@type": "Offer",
+            price: Number(car.price),
+            priceCurrency: "EUR",
+            availability: availabilityMap[car.status] ?? "https://schema.org/InStock",
+            url: pageUrl,
+        },
+        seller: { "@type": "AutoDealer", name: "Autoline24", url: siteUrl },
+    };
+
     return (
         <main className="page car-detail">
+            <Helmet>
+                <title>{pageTitle}</title>
+                <meta name="description" content={pageDesc} />
+                <link rel="canonical" href={pageUrl} />
+                <meta property="og:type" content="product" />
+                <meta property="og:title" content={pageTitle} />
+                <meta property="og:description" content={pageDesc} />
+                <meta property="og:url" content={pageUrl} />
+                {selectedImage && <meta property="og:image" content={selectedImage} />}
+                <meta name="twitter:card" content="summary_large_image" />
+                {selectedImage && <meta name="twitter:image" content={selectedImage} />}
+                <script type="application/ld+json">{JSON.stringify(carSchema)}</script>
+            </Helmet>
             <div className="page-backlinks">
                 <button type="button" className="page-link-button" onClick={() => navigate(-1)}>
                     ← Retour

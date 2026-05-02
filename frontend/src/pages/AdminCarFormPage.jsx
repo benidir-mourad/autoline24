@@ -133,8 +133,8 @@ export default function AdminCarFormPage() {
     const [expenses, setExpenses] = useState([]);
     const [options, setOptions] = useState([]);
     const [selectedOptionIds, setSelectedOptionIds] = useState([]);
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [previewUrl, setPreviewUrl] = useState("");
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [previewItems, setPreviewItems] = useState([]);
     const [isDragOver, setIsDragOver] = useState(false);
     const [newOptionName, setNewOptionName] = useState("");
     const [expenseForm, setExpenseForm] = useState(initialExpenseForm);
@@ -221,14 +221,14 @@ export default function AdminCarFormPage() {
     );
 
     useEffect(() => {
-        if (!selectedFile) {
-            setPreviewUrl("");
+        if (selectedFiles.length === 0) {
+            setPreviewItems([]);
             return;
         }
-        const url = URL.createObjectURL(selectedFile);
-        setPreviewUrl(url);
-        return () => URL.revokeObjectURL(url);
-    }, [selectedFile]);
+        const items = selectedFiles.map(file => ({ file, url: URL.createObjectURL(file) }));
+        setPreviewItems(items);
+        return () => items.forEach(item => URL.revokeObjectURL(item.url));
+    }, [selectedFiles]);
 
     function setScopedFeedback(setter, type, message) {
         setter({ type, message });
@@ -370,23 +370,26 @@ export default function AdminCarFormPage() {
         }));
     }
 
-    function updateSelectedFile(file) {
-        if (!file) return;
-
-        setSelectedFile(file);
+    function addFiles(fileList) {
+        if (!fileList || fileList.length === 0) return;
+        const incoming = Array.from(fileList);
+        setSelectedFiles(prev => {
+            const existing = new Set(prev.map(f => `${f.name}-${f.size}`));
+            const unique = incoming.filter(f => !existing.has(`${f.name}-${f.size}`));
+            return [...prev, ...unique];
+        });
         setScopedFeedback(setImageFeedback, "", "");
         setIsDragOver(false);
     }
 
     function handleFileChange(event) {
-        const file = event.target.files?.[0] || null;
-        updateSelectedFile(file);
+        addFiles(event.target.files);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     }
 
     function handleDrop(event) {
         event.preventDefault();
-        const file = event.dataTransfer.files?.[0] || null;
-        updateSelectedFile(file);
+        addFiles(event.dataTransfer.files);
     }
 
     function handleDragOver(event) {
@@ -399,13 +402,14 @@ export default function AdminCarFormPage() {
         setIsDragOver(false);
     }
 
-    function clearSelectedFile() {
-        setSelectedFile(null);
-        setIsDragOver(false);
+    function removeFile(index) {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    }
 
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
+    function clearAllFiles() {
+        setSelectedFiles([]);
+        setIsDragOver(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     }
 
     function handleOptionToggle(optionId) {
@@ -445,16 +449,13 @@ export default function AdminCarFormPage() {
                 option_ids: selectedOptionIds.map((optionId) => Number(optionId)),
             });
 
-            if (selectedFile) {
+            for (let i = 0; i < selectedFiles.length; i++) {
                 const formData = new FormData();
-                formData.append("image", selectedFile);
-                formData.append("is_main", "1");
-                formData.append("sort_order", "0");
-
+                formData.append("image", selectedFiles[i]);
+                formData.append("is_main", i === 0 ? "1" : "0");
+                formData.append("sort_order", String(i));
                 await api.post(`/admin/cars/${carId}/images`, formData, {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
+                    headers: { "Content-Type": "multipart/form-data" },
                 });
             }
 
@@ -664,32 +665,32 @@ export default function AdminCarFormPage() {
     }
 
     async function handleImageUpload() {
-        if (!selectedFile || !id) return;
+        if (selectedFiles.length === 0 || !id) return;
 
         try {
             setImageLoading(true);
             setScopedFeedback(setImageFeedback, "", "");
 
-            const formData = new FormData();
-            formData.append("image", selectedFile);
-            formData.append("is_main", images.length === 0 ? "1" : "0");
-            formData.append("sort_order", String(images.length));
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const formData = new FormData();
+                formData.append("image", selectedFiles[i]);
+                formData.append("is_main", i === 0 && images.length === 0 ? "1" : "0");
+                formData.append("sort_order", String(images.length + i));
+                await api.post(`/admin/cars/${id}/images`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                });
+            }
 
-            await api.post(`/admin/cars/${id}/images`, formData, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-            });
-
-            clearSelectedFile();
+            const count = selectedFiles.length;
+            clearAllFiles();
             await fetchImages();
-            setScopedFeedback(setImageFeedback, "success", "Image ajoutée avec succès.");
+            setScopedFeedback(setImageFeedback, "success", `${count} image(s) ajoutée(s) avec succès.`);
         } catch (error) {
             console.error(error);
             setScopedFeedback(
                 setImageFeedback,
                 "error",
-                error.response?.data?.message || "Erreur lors de l'upload de l'image."
+                error.response?.data?.message || "Erreur lors de l'upload des images."
             );
         } finally {
             setImageLoading(false);
@@ -1302,6 +1303,7 @@ export default function AdminCarFormPage() {
                         ref={fileInputRef}
                         type="file"
                         accept="image/*"
+                        multiple
                         onChange={handleFileChange}
                         className="admin-images-input"
                     />
@@ -1315,47 +1317,61 @@ export default function AdminCarFormPage() {
                         onDragLeave={handleDragLeave}
                     >
                         <span className="admin-upload-dropzone__icon">+</span>
-                        <strong>Déposer une image</strong>
-                        <span>ou cliquer pour parcourir</span>
+                        <strong>Déposer des images ici</strong>
+                        <span>ou cliquer pour sélectionner plusieurs photos</span>
                     </button>
 
-                    {selectedFile && (
-                        <div className="admin-upload-preview">
-                            <img
-                                src={previewUrl}
-                                alt="Aperçu avant upload"
-                                className="admin-upload-preview__image"
-                            />
+                    {selectedFiles.length > 0 && (
+                        <div className="admin-upload-queue">
+                            <div className="admin-upload-queue__header">
+                                <span>{selectedFiles.length} photo(s) sélectionnée(s)</span>
+                                <button
+                                    type="button"
+                                    className="admin-link"
+                                    onClick={clearAllFiles}
+                                    disabled={imageLoading}
+                                >
+                                    Tout retirer
+                                </button>
+                            </div>
 
-                            <div className="admin-upload-preview__content">
-                                <h3>{selectedFile.name}</h3>
-                                <p>{Math.round(selectedFile.size / 1024)} Ko</p>
-
-                                <div className="admin-upload-preview__actions">
-                                    {isEdit ? (
+                            <div className="admin-upload-queue__grid">
+                                {previewItems.map((item, index) => (
+                                    <div key={index} className="admin-upload-thumb">
+                                        <img src={item.url} alt={item.file.name} />
                                         <button
                                             type="button"
-                                            className="admin-button"
-                                            onClick={handleImageUpload}
+                                            className="admin-upload-thumb__remove"
+                                            onClick={() => removeFile(index)}
                                             disabled={imageLoading}
+                                            aria-label="Retirer cette image"
                                         >
-                                            {imageLoading ? "Upload..." : "Envoyer l'image"}
+                                            ×
                                         </button>
-                                    ) : (
-                                        <span className="admin-upload-preview__hint">
-                                            Cette image sera envoyée après l’enregistrement.
-                                        </span>
-                                    )}
+                                        {index === 0 && images.length === 0 && (
+                                            <span className="admin-upload-thumb__badge">Principale</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
 
+                            <div className="admin-upload-queue__actions">
+                                {isEdit ? (
                                     <button
                                         type="button"
-                                        className="admin-button admin-button--secondary"
-                                        onClick={clearSelectedFile}
+                                        className="admin-button"
+                                        onClick={handleImageUpload}
                                         disabled={imageLoading}
                                     >
-                                        Retirer
+                                        {imageLoading
+                                            ? "Upload en cours..."
+                                            : `Envoyer ${selectedFiles.length} image(s)`}
                                     </button>
-                                </div>
+                                ) : (
+                                    <span className="admin-upload-preview__hint">
+                                        Ces images seront envoyées après l’enregistrement de la voiture.
+                                    </span>
+                                )}
                             </div>
                         </div>
                     )}

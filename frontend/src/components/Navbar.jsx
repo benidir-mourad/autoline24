@@ -53,7 +53,6 @@ export default function Navbar() {
             </NavLink>
 
             <div className="navbar__links">
-                <NavLink to="/" end>Accueil</NavLink>
                 <NavLink to="/contact">Contact</NavLink>
                 <NavLink to="/admin">Admin</NavLink>
                 <NavLink to="/cars" className="navbar__cta">Nos voitures</NavLink>

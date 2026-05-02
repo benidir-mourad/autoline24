@@ -6,6 +6,22 @@
     margin-bottom: 28px;
 }
 
+.cars-page__tagline {
+    font-size: clamp(0.85rem, 2vw, 1rem);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    margin-bottom: 4px;
+}
+
+.cars-page__tagline-sub {
+    font-size: clamp(1rem, 2.5vw, 1.3rem);
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 10px;
+}
+
 .cars-page__header h1 {
     font-size: clamp(1.6rem, 3vw, 2.2rem);
     font-weight: 800;

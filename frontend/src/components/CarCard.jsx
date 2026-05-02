@@ -22,7 +22,7 @@ export default function CarCard({ car, contactSettings }) {
                 {mainImage ? (
                     <img
                         src={mainImage}
-                        alt={`${car.brand} ${car.model}`}
+                        alt={`${car.brand} ${car.model}${car.version ? ` ${car.version}` : ""} ${car.year} occasion`}
                         className="car-card__image"
                         onError={(e) => { e.currentTarget.style.display = "none"; }}
                         loading="lazy"

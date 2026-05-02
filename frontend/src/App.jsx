@@ -1,9 +1,8 @@
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicOnlyRoute from "./components/PublicOnlyRoute";
-import HomePage from "./pages/HomePage";
 import CarsPage from "./pages/CarsPage";
 import CarDetailPage from "./pages/CarDetailPage";
 import ContactPage from "./pages/ContactPage";
@@ -23,7 +22,7 @@ export default function App() {
         <>
             {!isAdminRoute && <Navbar />}
             <Routes>
-                <Route path="/" element={<HomePage />} />
+                <Route path="/" element={<Navigate to="/cars" replace />} />
                 <Route path="/cars" element={<CarsPage />} />
                 <Route path="/cars/:id" element={<CarDetailPage />} />
                 <Route path="/contact" element={<ContactPage />} />
