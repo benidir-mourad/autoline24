@@ -78,80 +78,6 @@ export default function FilterBar({
                 />
             </div>
 
-            <div className="filters__group filters__group--full" ref={dropdownRef}>
-                <div className="filters__label-row">
-                    <label>Options</label>
-
-                    {filters.option_ids.length > 0 && (
-                        <button
-                            type="button"
-                            className="filters__clear-link"
-                            onClick={clearAllOptions}
-                        >
-                            Tout effacer
-                        </button>
-                    )}
-                </div>
-
-                <div className="dropdown">
-                    <button
-                        type="button"
-                        className="dropdown__button"
-                        onClick={() => setOpen(!open)}
-                    >
-                        {filters.option_ids.length > 0
-                            ? `${filters.option_ids.length} option(s) sélectionnée(s)`
-                            : "Toutes les options"}
-                    </button>
-
-                    {open && (
-                        <div className="dropdown__menu">
-                            <input
-                                type="text"
-                                className="dropdown__search"
-                                placeholder="Rechercher une option..."
-                                value={optionSearch}
-                                onChange={(e) => setOptionSearch(e.target.value)}
-                            />
-
-                            <div className="dropdown__list">
-                                {filteredOptions.length > 0 ? (
-                                    filteredOptions.map((option) => (
-                                        <label key={option.id} className="dropdown__item">
-                                            <input
-                                                type="checkbox"
-                                                name="option_ids"
-                                                value={option.id}
-                                                checked={filters.option_ids.includes(String(option.id))}
-                                                onChange={onChange}
-                                            />
-                                            {option.name}
-                                        </label>
-                                    ))
-                                ) : (
-                                    <p className="dropdown__empty">Aucune option trouvée.</p>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {selectedOptions.length > 0 && (
-                    <div className="filters__chips">
-                        {selectedOptions.map((option) => (
-                            <button
-                                key={option.id}
-                                type="button"
-                                className="filters__chip"
-                                onClick={() => removeSelectedOption(option.id)}
-                            >
-                                {option.name} <span>×</span>
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
-
             <div className="filters__group">
                 <label htmlFor="brand">Marque</label>
                 <select
@@ -261,6 +187,80 @@ export default function FilterBar({
                     <option value="9">9</option>
                     <option value="12">12</option>
                 </select>
+            </div>
+
+            <div className="filters__group filters__group--full" ref={dropdownRef}>
+                <div className="filters__label-row">
+                    <label>Options</label>
+
+                    {filters.option_ids.length > 0 && (
+                        <button
+                            type="button"
+                            className="filters__clear-link"
+                            onClick={clearAllOptions}
+                        >
+                            Tout effacer
+                        </button>
+                    )}
+                </div>
+
+                <div className="dropdown">
+                    <button
+                        type="button"
+                        className="dropdown__button"
+                        onClick={() => setOpen(!open)}
+                    >
+                        {filters.option_ids.length > 0
+                            ? `${filters.option_ids.length} option(s) sélectionnée(s)`
+                            : "Toutes les options"}
+                    </button>
+
+                    {open && (
+                        <div className="dropdown__menu">
+                            <input
+                                type="text"
+                                className="dropdown__search"
+                                placeholder="Rechercher une option..."
+                                value={optionSearch}
+                                onChange={(e) => setOptionSearch(e.target.value)}
+                            />
+
+                            <div className="dropdown__list">
+                                {filteredOptions.length > 0 ? (
+                                    filteredOptions.map((option) => (
+                                        <label key={option.id} className="dropdown__item">
+                                            <input
+                                                type="checkbox"
+                                                name="option_ids"
+                                                value={option.id}
+                                                checked={filters.option_ids.includes(String(option.id))}
+                                                onChange={onChange}
+                                            />
+                                            {option.name}
+                                        </label>
+                                    ))
+                                ) : (
+                                    <p className="dropdown__empty">Aucune option trouvée.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {selectedOptions.length > 0 && (
+                    <div className="filters__chips">
+                        {selectedOptions.map((option) => (
+                            <button
+                                key={option.id}
+                                type="button"
+                                className="filters__chip"
+                                onClick={() => removeSelectedOption(option.id)}
+                            >
+                                {option.name} <span>×</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="filters__actions">
