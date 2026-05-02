@@ -19,17 +19,19 @@ export default function CarCard({ car, contactSettings }) {
     return (
         <article className="car-card">
             <div className="car-card__image-wrapper">
-                {mainImage ? (
-                    <img
-                        src={mainImage}
-                        alt={`${car.brand} ${car.model}${car.version ? ` ${car.version}` : ""} ${car.year} occasion`}
-                        className="car-card__image"
-                        onError={(e) => { e.currentTarget.style.display = "none"; }}
-                        loading="lazy"
-                    />
-                ) : (
-                    <div className="car-card__placeholder">Aucune photo</div>
-                )}
+                <Link to={`/cars/${car.id}`} className="car-card__image-link">
+                    {mainImage ? (
+                        <img
+                            src={mainImage}
+                            alt={`${car.brand} ${car.model}${car.version ? ` ${car.version}` : ""} ${car.year} occasion`}
+                            className="car-card__image"
+                            onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            loading="lazy"
+                        />
+                    ) : (
+                        <div className="car-card__placeholder">Aucune photo</div>
+                    )}
+                </Link>
                 {car.status && (
                     <span className={`car-card__status ${statusClass[car.status] ?? ""}`}>
                         {statusLabel[car.status] ?? car.status}

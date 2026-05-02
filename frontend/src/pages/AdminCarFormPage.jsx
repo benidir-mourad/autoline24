@@ -1143,7 +1143,7 @@ export default function AdminCarFormPage() {
                 open={openSections.info}
                 onToggle={() => toggleSection("info")}
             >
-            <form className="admin-form" onSubmit={handleSubmit}>
+            <form id="car-form" className="admin-form" onSubmit={handleSubmit}>
                 <ComboboxSelect
                     value={form.brand}
                     options={CAR_MAKES}
@@ -1214,11 +1214,6 @@ export default function AdminCarFormPage() {
                     onChange={handleChange}
                 />
 
-                <div className="admin-form__actions">
-                    <button type="submit" className="admin-button" disabled={formSaving}>
-                        {formSaving ? "Enregistrement..." : isEdit ? "Enregistrer les modifications" : "Ajouter la voiture"}
-                    </button>
-                </div>
             </form>
             </AccordionSection>
 
@@ -1433,6 +1428,17 @@ export default function AdminCarFormPage() {
                         </p>
                     )}
             </AccordionSection>
+
+            <div className="admin-form__actions admin-form__actions--final">
+                <button
+                    type="submit"
+                    form="car-form"
+                    className="admin-button"
+                    disabled={formSaving}
+                >
+                    {formSaving ? "Enregistrement..." : isEdit ? "Enregistrer les modifications" : "Ajouter la voiture"}
+                </button>
+            </div>
 
             <ConfirmDialog
                 open={confirmState.open}
