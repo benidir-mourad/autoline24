@@ -168,6 +168,31 @@
     grid-column: 1 / -1;
 }
 
+.admin-form__required {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.admin-form__required-note {
+    grid-column: 1 / -1;
+    font-size: 0.8rem;
+    color: var(--text-muted, #9ca3af);
+    margin: 4px 0 0;
+}
+
+.admin-form__select-label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-muted, #9ca3af);
+}
+
+.admin-form__select-label select {
+    margin: 0;
+}
+
 .admin-form__actions--final {
     margin-top: 8px;
     padding: 20px 0 4px;
