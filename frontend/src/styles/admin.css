@@ -180,17 +180,17 @@
     margin: 4px 0 0;
 }
 
-.admin-form__select-label {
+.admin-form__field {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    align-self: start;
+}
+
+.admin-form__field-label {
     font-size: 0.82rem;
     font-weight: 500;
     color: var(--text-muted, #9ca3af);
-}
-
-.admin-form__select-label select {
-    margin: 0;
 }
 
 .admin-form__actions--final {

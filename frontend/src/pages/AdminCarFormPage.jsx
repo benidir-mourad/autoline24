@@ -1144,42 +1144,57 @@ export default function AdminCarFormPage() {
                 onToggle={() => toggleSection("info")}
             >
             <form id="car-form" className="admin-form" onSubmit={handleSubmit}>
-                <ComboboxSelect
-                    value={form.brand}
-                    options={CAR_MAKES}
-                    placeholder="Marque *"
-                    onChange={(val) => setForm((f) => ({ ...f, brand: val, model: "" }))}
-                />
-                <ComboboxSelect
-                    value={form.model}
-                    options={getModelsForMake(form.brand)}
-                    placeholder={form.brand ? "Modèle *" : "Sélectionnez d'abord une marque *"}
-                    disabled={false}
-                    onChange={(val) => setForm((f) => ({ ...f, model: val }))}
-                />
+                <div className="admin-form__field">
+                    <span className="admin-form__field-label">Marque <span className="admin-form__required">*</span></span>
+                    <ComboboxSelect
+                        value={form.brand}
+                        options={CAR_MAKES}
+                        placeholder="Marque"
+                        onChange={(val) => setForm((f) => ({ ...f, brand: val, model: "" }))}
+                    />
+                </div>
+                <div className="admin-form__field">
+                    <span className="admin-form__field-label">Modèle <span className="admin-form__required">*</span></span>
+                    <ComboboxSelect
+                        value={form.model}
+                        options={getModelsForMake(form.brand)}
+                        placeholder={form.brand ? "Modèle" : "Sélectionnez d'abord une marque"}
+                        disabled={false}
+                        onChange={(val) => setForm((f) => ({ ...f, model: val }))}
+                    />
+                </div>
                 <input name="version" placeholder="Version" value={form.version} onChange={handleChange} />
-                <input name="year" type="number" placeholder="Année *" value={form.year} onChange={handleChange} />
-                <input name="mileage" type="number" placeholder="Kilométrage *" value={form.mileage} onChange={handleChange} />
-                <input name="price" type="number" placeholder="Prix de vente *" value={form.price} onChange={handleChange} />
+                <div className="admin-form__field">
+                    <span className="admin-form__field-label">Année <span className="admin-form__required">*</span></span>
+                    <input name="year" type="number" placeholder="Ex: 2021" value={form.year} onChange={handleChange} />
+                </div>
+                <div className="admin-form__field">
+                    <span className="admin-form__field-label">Kilométrage <span className="admin-form__required">*</span></span>
+                    <input name="mileage" type="number" placeholder="Ex: 45000" value={form.mileage} onChange={handleChange} />
+                </div>
+                <div className="admin-form__field">
+                    <span className="admin-form__field-label">Prix de vente <span className="admin-form__required">*</span></span>
+                    <input name="price" type="number" placeholder="Ex: 12500" value={form.price} onChange={handleChange} />
+                </div>
                 <input name="purchase_price" type="number" placeholder="Prix d'achat" value={form.purchase_price} onChange={handleChange} />
 
-                <label className="admin-form__select-label">
-                    Carburant <span className="admin-form__required">*</span>
+                <div className="admin-form__field">
+                    <span className="admin-form__field-label">Carburant <span className="admin-form__required">*</span></span>
                     <select name="fuel_type" value={form.fuel_type} onChange={handleChange}>
                         <option value="Diesel">Diesel</option>
                         <option value="Essence">Essence</option>
                         <option value="Hybride">Hybride</option>
                         <option value="Électrique">Électrique</option>
                     </select>
-                </label>
+                </div>
 
-                <label className="admin-form__select-label">
-                    Transmission <span className="admin-form__required">*</span>
+                <div className="admin-form__field">
+                    <span className="admin-form__field-label">Transmission <span className="admin-form__required">*</span></span>
                     <select name="transmission" value={form.transmission} onChange={handleChange}>
                         <option value="Manuelle">Manuelle</option>
                         <option value="Automatique">Automatique</option>
                     </select>
-                </label>
+                </div>
 
                 <input name="power_hp" type="number" placeholder="Puissance (ch)" value={form.power_hp} onChange={handleChange} />
                 <input name="fiscal_power" type="number" placeholder="Puissance fiscale" value={form.fiscal_power} onChange={handleChange} />
@@ -1191,22 +1206,22 @@ export default function AdminCarFormPage() {
                 <input name="first_registration_date" type="date" value={form.first_registration_date} onChange={handleChange} />
                 <input name="reference" placeholder="Référence" value={form.reference} onChange={handleChange} />
 
-                <label className="admin-form__select-label">
-                    Statut <span className="admin-form__required">*</span>
+                <div className="admin-form__field">
+                    <span className="admin-form__field-label">Statut <span className="admin-form__required">*</span></span>
                     <select name="status" value={form.status} onChange={handleChange}>
                         <option value="available">Disponible</option>
                         <option value="reserved">Réservée</option>
                         <option value="sold">Vendue</option>
                     </select>
-                </label>
+                </div>
 
-                <label className="admin-form__select-label">
-                    Publication <span className="admin-form__required">*</span>
+                <div className="admin-form__field">
+                    <span className="admin-form__field-label">Publication <span className="admin-form__required">*</span></span>
                     <select name="publication_status" value={form.publication_status} onChange={handleChange}>
                         <option value="published">Publiée</option>
                         <option value="draft">Brouillon</option>
                     </select>
-                </label>
+                </div>
 
                 <label className="admin-checkbox">
                     <input
