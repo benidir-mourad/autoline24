@@ -19,7 +19,6 @@ export default function Footer() {
 
                 <div className="site-footer__col">
                     <span className="site-footer__heading">Navigation</span>
-                    <Link to="/">Accueil</Link>
                     <Link to="/cars">Voitures</Link>
                     <Link to="/contact">Contact</Link>
                 </div>

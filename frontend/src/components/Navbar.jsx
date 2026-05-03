@@ -28,10 +28,30 @@ function MoonIcon() {
     );
 }
 
+function HamburgerIcon({ open }) {
+    return (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            {open ? (
+                <>
+                    <line x1="3" y1="3" x2="17" y2="17"/>
+                    <line x1="17" y1="3" x2="3" y2="17"/>
+                </>
+            ) : (
+                <>
+                    <line x1="2" y1="5" x2="18" y2="5"/>
+                    <line x1="2" y1="10" x2="18" y2="10"/>
+                    <line x1="2" y1="15" x2="18" y2="15"/>
+                </>
+            )}
+        </svg>
+    );
+}
+
 export default function Navbar() {
     const { contactSettings } = useSiteSettings();
     const { theme, toggle } = useTheme();
     const [scrolled, setScrolled] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     useEffect(() => {
         function onScroll() {
@@ -41,9 +61,13 @@ export default function Navbar() {
         return () => window.removeEventListener("scroll", onScroll);
     }, []);
 
+    function closeMenu() {
+        setMenuOpen(false);
+    }
+
     return (
-        <nav className={`navbar${scrolled ? " navbar--scrolled" : ""}`}>
-            <NavLink to="/" className="navbar__brand" end>
+        <nav className={`navbar${scrolled ? " navbar--scrolled" : ""}${menuOpen ? " navbar--open" : ""}`}>
+            <NavLink to="/" className="navbar__brand" end onClick={closeMenu}>
                 <div className="navbar__logo">
                     Autoline<span>24</span>
                 </div>
@@ -53,15 +77,26 @@ export default function Navbar() {
             </NavLink>
 
             <div className="navbar__links">
-                <NavLink to="/contact">Contact</NavLink>
-                <NavLink to="/admin">Admin</NavLink>
-                <NavLink to="/cars" className="navbar__cta">Nos voitures</NavLink>
+                <NavLink to="/contact" onClick={closeMenu}>Contact</NavLink>
+                <NavLink to="/admin" onClick={closeMenu}>Admin</NavLink>
+                <NavLink to="/cars" className="navbar__cta" onClick={closeMenu}>Nos voitures</NavLink>
+            </div>
+
+            <div className="navbar__actions">
                 <button
                     className="navbar__theme-toggle"
                     onClick={toggle}
                     aria-label={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
                 >
                     {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+                </button>
+                <button
+                    className="navbar__hamburger"
+                    onClick={() => setMenuOpen(o => !o)}
+                    aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+                    aria-expanded={menuOpen}
+                >
+                    <HamburgerIcon open={menuOpen} />
                 </button>
             </div>
         </nav>

@@ -1420,13 +1420,11 @@ export default function AdminCarFormPage() {
                                 </div>
                             ))}
                         </div>
-                    ) : (
-                        <p>
-                            {isEdit
-                                ? "Aucune image ajoutée."
-                                : "Aucune image préparée pour le moment."}
-                        </p>
-                    )}
+                    ) : isEdit ? (
+                        <p>Aucune image ajoutée.</p>
+                    ) : selectedFiles.length === 0 ? (
+                        <p>Sélectionnez des images ci-dessus pour les joindre à la voiture.</p>
+                    ) : null}
             </AccordionSection>
 
             <div className="admin-form__actions admin-form__actions--final">
