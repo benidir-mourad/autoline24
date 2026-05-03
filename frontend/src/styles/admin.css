@@ -97,6 +97,11 @@
     font-size: 0.95rem;
 }
 
+.admin-form > input,
+.admin-form > select {
+    align-self: start;
+}
+
 .admin-form textarea {
     grid-column: 1 / -1;
 }
