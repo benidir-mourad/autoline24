@@ -29,6 +29,7 @@
     color: #ffffff;
     text-decoration: none;
     cursor: pointer;
+    text-align: left;
 }
 
 .admin-button--secondary {

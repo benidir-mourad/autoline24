@@ -25,7 +25,7 @@ class CarImageController extends Controller
         $car = Car::findOrFail($carId);
 
         $validated = $request->validate([
-            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'is_main' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
