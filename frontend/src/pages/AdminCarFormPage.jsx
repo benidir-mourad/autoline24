@@ -126,6 +126,7 @@ export default function AdminCarFormPage() {
     const navigate = useNavigate();
     const isEdit = Boolean(id);
     const fileInputRef = useRef(null);
+    const cameraInputRef = useRef(null);
 
     const [form, setForm] = useState(initialForm);
     const [carSummary, setCarSummary] = useState(null);
@@ -1331,6 +1332,14 @@ export default function AdminCarFormPage() {
                         onChange={handleFileChange}
                         className="admin-images-input"
                     />
+                    <input
+                        ref={cameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileChange}
+                        className="admin-images-input"
+                    />
 
                     <button
                         type="button"
@@ -1343,6 +1352,14 @@ export default function AdminCarFormPage() {
                         <span className="admin-upload-dropzone__icon">+</span>
                         <strong>Déposer des images ici</strong>
                         <span>ou cliquer pour sélectionner plusieurs photos</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="admin-button admin-button--secondary admin-camera-button"
+                        onClick={() => cameraInputRef.current?.click()}
+                    >
+                        Prendre une photo
                     </button>
 
                     {selectedFiles.length > 0 && (
