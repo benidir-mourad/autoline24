@@ -249,7 +249,7 @@ export default function CarsPage() {
             </Helmet>
             <div className="cars-page__header">
                 <div>
-                    <p className="cars-page__tagline">Achat · Vente · Reprise · Import · Export — Occasion &amp; Neuve</p>
+                    <p className="cars-page__tagline">Achat · Vente · Reprise · Import · Export — Véhicules d'occasion &amp; neufs</p>
                     <p className="cars-page__tagline-sub">Vous êtes au bon endroit</p>
                     <h1>Nos voitures</h1>
                     <p>Découvrez notre sélection de véhicules d'occasion disponibles.</p>
