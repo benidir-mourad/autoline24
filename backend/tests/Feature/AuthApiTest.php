@@ -111,7 +111,7 @@ class AuthApiTest extends TestCase
             'role' => 'admin',
         ]);
 
-        $response = $this->postJson('/api/admin/forgot-password', [
+        $response = $this->postJson('/api/admin/recover', [
             'email' => 'admin@example.com',
         ]);
 
@@ -133,7 +133,7 @@ class AuthApiTest extends TestCase
 
         $token = Password::broker()->createToken($user);
 
-        $response = $this->postJson('/api/admin/reset-password', [
+        $response = $this->postJson('/api/admin/renew', [
             'email' => $user->email,
             'token' => $token,
             'password' => 'reset-secret123',

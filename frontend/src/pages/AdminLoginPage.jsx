@@ -68,7 +68,7 @@ export default function AdminLoginPage() {
                 </form>
 
                 <div className="page-backlinks admin-login-links">
-                    <Link to="/admin/forgot-password">Mot de passe oublié ?</Link>
+                    <Link to="/admin/recover">Mot de passe oublié ?</Link>
                     <Link to="/cars">Retour au site</Link>
                 </div>
 

@@ -33,7 +33,7 @@ export default function AdminResetPasswordPage() {
         try {
             setLoading(true);
             setFeedback({ type: "", message: "" });
-            const response = await api.post("/admin/reset-password", form);
+            const response = await api.post("/admin/renew", form);
             setFeedback({ type: "success", message: response.data.message });
             setTimeout(() => navigate("/admin/login", { replace: true }), 1200);
         } catch (error) {

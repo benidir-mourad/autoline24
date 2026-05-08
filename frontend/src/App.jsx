@@ -29,8 +29,8 @@ export default function App() {
 
                 <Route element={<PublicOnlyRoute />}>
                     <Route path="/admin/login" element={<AdminLoginPage />} />
-                    <Route path="/admin/forgot-password" element={<AdminForgotPasswordPage />} />
-                    <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />
+                    <Route path="/admin/recover" element={<AdminForgotPasswordPage />} />
+                    <Route path="/admin/renew" element={<AdminResetPasswordPage />} />
                 </Route>
 
                 <Route element={<ProtectedRoute />}>

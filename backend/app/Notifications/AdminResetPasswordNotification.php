@@ -24,7 +24,7 @@ class AdminResetPasswordNotification extends Notification
     {
         $frontendUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/');
         $resetUrl = sprintf(
-            '%s/admin/reset-password?token=%s&email=%s',
+            '%s/admin/renew?token=%s&email=%s',
             $frontendUrl,
             urlencode($this->token),
             urlencode($notifiable->getEmailForPasswordReset())

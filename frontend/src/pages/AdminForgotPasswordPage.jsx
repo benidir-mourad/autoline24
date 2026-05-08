@@ -15,7 +15,7 @@ export default function AdminForgotPasswordPage() {
             setLoading(true);
             setFeedback({ type: "", message: "" });
             setDebugResetUrl("");
-            const response = await api.post("/admin/forgot-password", { email });
+            const response = await api.post("/admin/recover", { email });
             setFeedback({ type: "success", message: response.data.message });
             setDebugResetUrl(response.data.debug_reset_url || "");
         } catch (error) {
