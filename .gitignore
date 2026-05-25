@@ -17,8 +17,7 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 
-# Deploy scripts
-deploy.sh
+# Deploy scripts (autres scripts locaux sensibles)
 ssh_deploy.py
 fix_server.py
 create_admin.py
