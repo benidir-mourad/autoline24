@@ -117,7 +117,7 @@ export default function AdminCarsPage() {
 
                 <div className="admin-page__actions">
                     <Link to="/admin/settings" className="admin-button admin-button--secondary">
-                        {t("admin.settings")}
+                        {t("admin.settings.title")}
                     </Link>
 
                     <button
