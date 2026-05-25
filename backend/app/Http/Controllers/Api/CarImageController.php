@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Car;
 use App\Models\CarImage;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class CarImageController extends Controller
 {
-    public function index(string $carId)
+    public function index(string $carId): JsonResponse
     {
         $car = Car::with('images')->findOrFail($carId);
 
@@ -20,59 +22,62 @@ class CarImageController extends Controller
         ]);
     }
 
-    public function store(Request $request, string $carId)
+    public function store(Request $request, string $carId): JsonResponse
     {
         $car = Car::findOrFail($carId);
 
         $validated = $request->validate([
-            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
-            'is_main' => ['nullable', 'boolean'],
+            'image'      => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240', 'dimensions:max_width=5000,max_height=5000'],
+            'is_main'    => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $path = $request->file('image')->store('cars', 'public');
 
-        $isMain = (bool) ($validated['is_main'] ?? false);
+        $requestedMain = (bool) ($validated['is_main'] ?? false);
         $sortOrder = $validated['sort_order'] ?? 0;
 
-        if ($isMain) {
-            $car->images()->update(['is_main' => false]);
-        }
+        $image = DB::transaction(function () use ($car, $path, $requestedMain, $sortOrder) {
+            $isFirst = $car->images()->count() === 0;
+            $isMain  = $requestedMain || $isFirst;
 
-        if ($car->images()->count() === 0) {
-            $isMain = true;
-        }
+            if ($isMain) {
+                $car->images()->update(['is_main' => false]);
+            }
 
-        $image = $car->images()->create([
-            'image_path' => $path,
-            'is_main' => $isMain,
-            'sort_order' => $sortOrder,
-        ]);
+            return $car->images()->create([
+                'image_path' => $path,
+                'is_main'    => $isMain,
+                'sort_order' => $sortOrder,
+            ]);
+        });
 
         return response()->json([
             'message' => 'Image ajoutée avec succès.',
-            'image' => $image,
+            'image'   => $image,
         ], 201);
     }
 
-    public function setMain(string $id)
+    public function setMain(string $id): JsonResponse
     {
         $image = CarImage::findOrFail($id);
-        $car = $image->car;
+        $car   = $image->car;
 
-        $car->images()->update(['is_main' => false]);
-        $image->update(['is_main' => true]);
+        DB::transaction(function () use ($car, $image) {
+            $car->images()->update(['is_main' => false]);
+            $image->update(['is_main' => true]);
+        });
 
         return response()->json([
             'message' => 'Image principale mise à jour avec succès.',
-            'image' => $image->fresh(),
+            'image'   => $image->fresh(),
         ]);
     }
 
-    public function destroy(string $id)
+    public function destroy(string $id): JsonResponse
     {
-        $image = CarImage::findOrFail($id);
-        $car = $image->car;
+        $image   = CarImage::findOrFail($id);
+        $car     = $image->car;
         $wasMain = $image->is_main;
 
         Storage::disk('public')->delete($image->image_path);
@@ -80,13 +85,9 @@ class CarImageController extends Controller
 
         if ($wasMain) {
             $newMain = $car->images()->orderBy('sort_order')->first();
-            if ($newMain) {
-                $newMain->update(['is_main' => true]);
-            }
+            $newMain?->update(['is_main' => true]);
         }
 
-        return response()->json([
-            'message' => 'Image supprimée avec succès.',
-        ]);
+        return response()->json(['message' => 'Image supprimée avec succès.']);
     }
 }

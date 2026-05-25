@@ -18,13 +18,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/cars', [CarController::class, 'publicIndex']);
 Route::get('/cars/{id}', [CarController::class, 'publicShow']);
-Route::post('/admin/login', [AuthController::class, 'login']);
-Route::post('/admin/recover', [AuthController::class, 'forgotPassword']);
-Route::post('/admin/renew', [AuthController::class, 'resetPassword']);
 Route::get('/options', [OptionController::class, 'index']);
 Route::get('/brands', [CarController::class, 'brands']);
 Route::get('/settings/contact', [AppSettingController::class, 'publicContact']);
-Route::post('/contact', [ContactController::class, 'send']);
+
+Route::post('/admin/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/admin/recover', [AuthController::class, 'forgotPassword'])->middleware('throttle:3,1');
+Route::post('/admin/renew', [AuthController::class, 'resetPassword']);
+Route::post('/contact', [ContactController::class, 'send'])->middleware('throttle:10,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -32,7 +33,7 @@ Route::post('/contact', [ContactController::class, 'send']);
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::put('/change-password', [AuthController::class, 'changePassword']);

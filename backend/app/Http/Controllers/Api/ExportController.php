@@ -77,7 +77,7 @@ class ExportController extends Controller
                     $expense->category,
                     $expense->expense_type,
                     $expense->amount,
-                    optional($expense->expense_date)->format('Y-m-d'),
+                    $expense->expense_date?->format('Y-m-d') ?? '',
                     $expense->description,
                 ], ';');
             }

@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
+import "./i18n";
 import App from "./App";
 import { AuthProvider } from "./contexts/AuthContext";
 import { SiteSettingsProvider } from "./contexts/SiteSettingsContext";

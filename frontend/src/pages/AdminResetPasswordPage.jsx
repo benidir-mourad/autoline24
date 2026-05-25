@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 
 export default function AdminResetPasswordPage() {
+    const { t } = useTranslation();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [form, setForm] = useState({
@@ -37,13 +39,13 @@ export default function AdminResetPasswordPage() {
             setFeedback({ type: "success", message: response.data.message });
             setTimeout(() => navigate("/admin/login", { replace: true }), 1200);
         } catch (error) {
-            console.error("Erreur lors de la réinitialisation :", error);
+            console.error(error);
             setFeedback({
                 type: "error",
                 message:
                     error.response?.data?.message ||
                     error.response?.data?.errors?.email?.[0] ||
-                    "Impossible de réinitialiser le mot de passe.",
+                    t("admin.reset.errorFallback"),
             });
         } finally {
             setLoading(false);
@@ -53,23 +55,23 @@ export default function AdminResetPasswordPage() {
     return (
         <main className="page">
             <div className="page-backlinks">
-                <Link to="/admin/login">Retour à la connexion</Link>
+                <Link to="/admin/login">{t("admin.reset.backToLogin")}</Link>
             </div>
 
             <section className="home-hero">
-                <span className="page-eyebrow">Admin</span>
-                <h1>Réinitialiser le mot de passe</h1>
+                <span className="page-eyebrow">{t("admin.reset.eyebrow")}</span>
+                <h1>{t("admin.reset.title")}</h1>
                 <p>
                     {isPrefilled
-                        ? "Définissez un nouveau mot de passe pour votre compte admin."
-                        : "Renseignez votre e-mail, le token reçu et votre nouveau mot de passe."}
+                        ? t("admin.reset.descPrefilled")
+                        : t("admin.reset.descManual")}
                 </p>
 
                 <form className="filters" onSubmit={handleSubmit}>
                     <input
                         type="email"
                         name="email"
-                        placeholder="E-mail admin"
+                        placeholder={t("admin.reset.emailPlaceholder")}
                         value={form.email}
                         onChange={handleChange}
                     />
@@ -77,7 +79,7 @@ export default function AdminResetPasswordPage() {
                     <input
                         type="text"
                         name="token"
-                        placeholder="Token de réinitialisation"
+                        placeholder={t("admin.reset.tokenPlaceholder")}
                         value={form.token}
                         onChange={handleChange}
                     />
@@ -85,7 +87,7 @@ export default function AdminResetPasswordPage() {
                     <input
                         type="password"
                         name="password"
-                        placeholder="Nouveau mot de passe"
+                        placeholder={t("admin.reset.newPasswordPlaceholder")}
                         value={form.password}
                         onChange={handleChange}
                     />
@@ -93,13 +95,13 @@ export default function AdminResetPasswordPage() {
                     <input
                         type="password"
                         name="password_confirmation"
-                        placeholder="Confirmation du mot de passe"
+                        placeholder={t("admin.reset.confirmPasswordPlaceholder")}
                         value={form.password_confirmation}
                         onChange={handleChange}
                     />
 
                     <button type="submit" disabled={loading}>
-                        {loading ? "Enregistrement..." : "Réinitialiser"}
+                        {loading ? t("admin.reset.saving") : t("admin.reset.submit")}
                     </button>
                 </form>
 

@@ -1,47 +1,58 @@
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import { useSiteSettings } from "../hooks/useSiteSettings";
 
 export default function HomePage() {
+    const { t } = useTranslation();
     const { contactSettings } = useSiteSettings();
+    const siteUrl = window.location.origin;
 
     return (
         <main className="page home-page">
+            <Helmet>
+                <title>{t("home.metaTitle")}</title>
+                <meta name="description" content={t("home.metaDesc")} />
+                <link rel="canonical" href={siteUrl} />
+                <meta property="og:type" content="website" />
+                <meta property="og:title" content={t("home.ogTitle")} />
+                <meta property="og:description" content={t("home.metaDesc")} />
+                <meta property="og:url" content={siteUrl} />
+                <meta name="twitter:card" content="summary" />
+            </Helmet>
+
             <section className="home-hero">
-                <span className="page-eyebrow">Accueil</span>
-                <h1>Un point d’entrée simple pour trouver votre prochaine voiture</h1>
-                <p>
-                    Autoline24 vous accompagne de la première sélection jusqu’au
-                    rendez-vous. L’accueil sert ici de porte d’entrée rapide vers le
-                    stock, les coordonnées et la prise de contact.
-                </p>
+                <span className="page-eyebrow">{t("home.eyebrow")}</span>
+                <h1>{t("home.title")}</h1>
+                <p>{t("home.description")}</p>
 
                 <div className="page-actions">
                     <Link to="/cars" className="page-button">
-                        Parcourir le stock
+                        {t("home.browseCatalog")}
                     </Link>
                     <Link to="/contact" className="page-button page-button--secondary">
-                        Prendre contact
+                        {t("home.takeContact")}
                     </Link>
                 </div>
             </section>
 
             <section className="home-highlight-grid">
                 <article className="page-card">
-                    <span>Catalogue</span>
-                    <strong>Consultez toutes les voitures disponibles</strong>
-                    <p>Filtres, détails, galerie photo et accès rapide au vendeur.</p>
+                    <span>{t("home.catalogLabel")}</span>
+                    <strong>{t("home.catalogTitle")}</strong>
+                    <p>{t("home.catalogText")}</p>
                 </article>
 
                 <article className="page-card">
-                    <span>Contact direct</span>
+                    <span>{t("home.directContactLabel")}</span>
                     <strong>{contactSettings.contact_phone}</strong>
                     <p>{contactSettings.contact_email}</p>
                 </article>
 
                 <article className="page-card">
-                    <span>Visite sur place</span>
+                    <span>{t("home.onSiteLabel")}</span>
                     <strong>{contactSettings.contact_address}</strong>
-                    <p>Retrouvez aussi ces coordonnées sur la page contact.</p>
+                    <p>{t("home.onSiteText")}</p>
                 </article>
             </section>
         </main>

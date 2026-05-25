@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\AppSetting;
 use App\Models\User;
+use App\Services\AppSettingService;
 use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
@@ -17,36 +18,36 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    public function __construct(private readonly AppSettingService $settings) {}
+
+    public function login(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => ['required', 'email'],
+            'email'    => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        if (!Auth::attempt($validated)) {
-            return response()->json([
-                'message' => 'Identifiants invalides.',
-            ], 401);
+        if (!Auth::attempt($validated, remember: true)) {
+            return response()->json(['message' => 'Identifiants invalides.'], 401);
         }
 
-        $user = Auth::user();
-        $token = $user->createToken('admin-token')->plainTextToken;
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
 
         return response()->json([
             'message' => 'Connexion réussie.',
-            'token' => $token,
-            'user' => $user,
+            'user'    => Auth::user(),
         ]);
     }
 
-    public function forgotPassword(Request $request)
+    public function forgotPassword(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'email' => ['required', 'email'],
         ]);
 
-        $this->applyMailSettings();
+        $this->settings->applyMailSettings();
 
         Password::sendResetLink($validated);
 
@@ -73,11 +74,11 @@ class AuthController extends Controller
         return response()->json($response);
     }
 
-    public function resetPassword(Request $request)
+    public function resetPassword(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'token' => ['required', 'string'],
-            'email' => ['required', 'email'],
+            'token'    => ['required', 'string'],
+            'email'    => ['required', 'email'],
             'password' => ['required', 'confirmed', 'min:8'],
         ]);
 
@@ -85,7 +86,7 @@ class AuthController extends Controller
             $validated,
             function ($user) use ($validated) {
                 $user->forceFill([
-                    'password' => Hash::make($validated['password']),
+                    'password'       => Hash::make($validated['password']),
                     'remember_token' => Str::random(60),
                 ])->save();
 
@@ -101,16 +102,14 @@ class AuthController extends Controller
             ]);
         }
 
-        return response()->json([
-            'message' => 'Mot de passe réinitialisé avec succès.',
-        ]);
+        return response()->json(['message' => 'Mot de passe réinitialisé avec succès.']);
     }
 
-    public function changePassword(Request $request)
+    public function changePassword(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'current_password' => ['required'],
-            'password' => ['required', 'confirmed', 'min:8'],
+            'password'         => ['required', 'confirmed', 'min:8'],
         ]);
 
         $user = $request->user();
@@ -122,25 +121,25 @@ class AuthController extends Controller
         }
 
         $user->forceFill([
-            'password' => Hash::make($validated['password']),
+            'password'       => Hash::make($validated['password']),
             'remember_token' => Str::random(60),
         ])->save();
 
         $user->tokens()->delete();
-        $newToken = $user->createToken('admin-token')->plainTextToken;
 
-        return response()->json([
-            'message' => 'Mot de passe mis à jour avec succès.',
-            'token' => $newToken,
-        ]);
+        if ($request->hasSession()) {
+            $request->session()->regenerate();
+        }
+
+        return response()->json(['message' => 'Mot de passe mis à jour avec succès.']);
     }
 
-    public function changeEmail(Request $request)
+    public function changeEmail(Request $request): JsonResponse
     {
         $user = $request->user();
 
         $validated = $request->validate([
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'email'            => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
             'current_password' => ['required'],
         ]);
 
@@ -150,50 +149,29 @@ class AuthController extends Controller
             ]);
         }
 
-        $user->forceFill([
-            'email' => $validated['email'],
-        ])->save();
+        $user->forceFill(['email' => $validated['email']])->save();
 
         return response()->json([
             'message' => 'Adresse e-mail de connexion mise à jour avec succès.',
-            'user' => $user->fresh(),
+            'user'    => $user->fresh(),
         ]);
     }
 
-    public function me(Request $request)
+    public function me(Request $request): JsonResponse
     {
         return response()->json($request->user());
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()?->delete();
-
-        return response()->json([
-            'message' => 'Déconnexion réussie.',
-        ]);
-    }
-
-    private function applyMailSettings(): void
-    {
-        $settings = AppSetting::whereIn('key', [
-            'mail_host', 'mail_port', 'mail_encryption',
-            'mail_username', 'mail_password', 'mail_from_address',
-        ])->pluck('value', 'key')->all();
-
-        if (empty($settings['mail_host'])) {
-            return;
+        if ($request->hasSession()) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        } else {
+            $request->user()->currentAccessToken()?->delete();
         }
 
-        Config::set('mail.default', 'smtp');
-        Config::set('mail.mailers.smtp.host', $settings['mail_host']);
-        Config::set('mail.mailers.smtp.port', (int) ($settings['mail_port'] ?? 587));
-        Config::set('mail.mailers.smtp.encryption', $settings['mail_encryption'] === 'none' ? null : ($settings['mail_encryption'] ?? 'tls'));
-        Config::set('mail.mailers.smtp.username', $settings['mail_username'] ?? '');
-        Config::set('mail.mailers.smtp.password', $settings['mail_password'] ?? '');
-        Config::set('mail.from.address', $settings['mail_from_address'] ?? '');
-        Config::set('mail.from.name', config('app.name'));
-
-        app('mail.manager')->purge('smtp');
+        return response()->json(['message' => 'Déconnexion réussie.']);
     }
 }

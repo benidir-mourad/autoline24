@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import GlobalSeo from "./components/GlobalSeo";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicOnlyRoute from "./components/PublicOnlyRoute";
 import CarsPage from "./pages/CarsPage";
@@ -20,6 +22,12 @@ export default function App() {
 
     return (
         <>
+            {isAdminRoute && (
+                <Helmet>
+                    <meta name="robots" content="noindex, nofollow" />
+                </Helmet>
+            )}
+            {!isAdminRoute && <GlobalSeo />}
             {!isAdminRoute && <Navbar />}
             <Routes>
                 <Route path="/" element={<Navigate to="/cars" replace />} />

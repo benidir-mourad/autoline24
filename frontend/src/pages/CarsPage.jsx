@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 import CarCard from "../components/CarCard";
 import FilterBar from "../components/FilterBar";
@@ -27,6 +28,7 @@ function getInitialPage(searchParams) {
 }
 
 export default function CarsPage() {
+    const { t } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
     const { contactSettings } = useSiteSettings();
 
@@ -76,7 +78,7 @@ export default function CarsPage() {
                 last_page: response.data.last_page ?? 1,
             }));
         } catch (error) {
-            console.error("Erreur lors du chargement des voitures :", error);
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -87,7 +89,7 @@ export default function CarsPage() {
             const response = await api.get("/options");
             setOptions(response.data ?? []);
         } catch (error) {
-            console.error("Erreur lors du chargement des options :", error);
+            console.error(error);
         }
     }, []);
 
@@ -96,7 +98,7 @@ export default function CarsPage() {
             const response = await api.get("/brands");
             setBrands(response.data ?? []);
         } catch (error) {
-            console.error("Erreur lors du chargement des marques :", error);
+            console.error(error);
         }
     }, []);
 
@@ -220,47 +222,40 @@ export default function CarsPage() {
     }
 
     const siteUrl = window.location.origin;
-    const metaDesc = "Achat, vente, reprise, import et export de voitures d'occasion et neuves en Belgique. Parcourez notre catalogue en ligne.";
-    const autoDealerSchema = {
-        "@context": "https://schema.org",
-        "@type": "AutoDealer",
-        "name": "Autoline24",
-        "description": "Achat, vente, reprise, import et export de voitures d'occasion et neuves.",
-        "url": siteUrl,
-        ...(contactSettings.contact_phone && { telephone: contactSettings.contact_phone }),
-        ...(contactSettings.contact_email && { email: contactSettings.contact_email }),
-        ...(contactSettings.contact_address && {
-            address: { "@type": "PostalAddress", streetAddress: contactSettings.contact_address },
-        }),
-    };
+    const metaDesc = t("cars.metaDesc");
+
+    const hasActiveFilters =
+        filters.search || filters.brand || filters.min_price || filters.max_price ||
+        filters.min_year || filters.max_mileage || filters.fuel_type ||
+        filters.option_ids.length > 0 || meta.current_page > 1;
 
     return (
         <main className="page cars-page">
             <Helmet>
-                <title>Voitures d'occasion | Autoline24</title>
+                <title>{t("cars.pageTitle")}</title>
                 <meta name="description" content={metaDesc} />
                 <link rel="canonical" href={`${siteUrl}/cars`} />
+                {hasActiveFilters && <meta name="robots" content="noindex, follow" />}
                 <meta property="og:type" content="website" />
-                <meta property="og:title" content="Voitures d'occasion | Autoline24" />
+                <meta property="og:title" content={t("cars.ogTitle")} />
                 <meta property="og:description" content={metaDesc} />
                 <meta property="og:url" content={`${siteUrl}/cars`} />
                 <meta name="twitter:card" content="summary" />
-                <script type="application/ld+json">{JSON.stringify(autoDealerSchema)}</script>
             </Helmet>
-            <div className="cars-page__header">
-                <div>
-                    <p className="cars-page__tagline">Achat · Vente · Reprise · Import · Export — Véhicules d'occasion &amp; neufs</p>
-                    <p className="cars-page__tagline-sub">Vous êtes au bon endroit</p>
-                    <h1>Nos voitures</h1>
-                    <p>Découvrez notre sélection de véhicules d'occasion disponibles.</p>
+            <div className="cars-page__hero">
+                <div className="cars-page__hero-copy">
+                    <p className="cars-page__tagline">{t("cars.tagline")}</p>
+                    <p className="cars-page__tagline-sub">{t("cars.taglineSub")}</p>
+                    <h1>{t("cars.title")}</h1>
+                    <p className="cars-page__subtitle">{t("cars.subtitle")}</p>
                 </div>
 
                 <div className="cars-page__contact-card">
-                    <span>Besoin d'un renseignement ?</span>
+                    <span>{t("cars.needInfo")}</span>
                     <a href={`tel:${contactSettings.contact_phone}`}>
                         {contactSettings.contact_phone}
                     </a>
-                    <Link to="/contact">Contacter le vendeur</Link>
+                    <Link to="/contact">{t("cars.contactSeller")}</Link>
                 </div>
             </div>
 
@@ -273,29 +268,38 @@ export default function CarsPage() {
                 onReset={handleReset}
             />
 
-            <div className="cars-page__results">
-                {loading ? (
-                    <p>Chargement...</p>
-                ) : (
-                    <p>
-                        <strong>{meta.total}</strong> voiture(s) trouvée(s)
-                    </p>
-                )}
-            </div>
-
             {!loading && (
+                <div className="cars-page__results">
+                    <p>{t("cars.resultsCount", { count: meta.total })}</p>
+                </div>
+            )}
+
+            {loading ? (
+                <div className="cars-skeleton">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="car-skeleton-card">
+                            <div className="car-skeleton-card__image" />
+                            <div className="car-skeleton-card__body">
+                                <div className="car-skeleton-card__line car-skeleton-card__line--title" />
+                                <div className="car-skeleton-card__line car-skeleton-card__line--meta" />
+                                <div className="car-skeleton-card__line car-skeleton-card__line--price" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
                 <section className="cars-grid">
                     {cars.length > 0 ? (
-                        cars.map((car) => (
+                        cars.map((car, index) => (
                             <CarCard
                                 key={car.id}
                                 car={car}
-                                contactSettings={contactSettings}
+                                priority={index === 0}
                             />
                         ))
                     ) : (
                         <div className="cars-page__empty">
-                            <p>Aucune voiture ne correspond à votre recherche.</p>
+                            <p>{t("cars.noResults")}</p>
                         </div>
                     )}
                 </section>
@@ -308,11 +312,11 @@ export default function CarsPage() {
                         disabled={meta.current_page === 1}
                         onClick={() => handlePageChange(meta.current_page - 1)}
                     >
-                        Précédent
+                        {t("common.previous")}
                     </button>
 
                     <span>
-                        Page {meta.current_page} / {meta.last_page}
+                        {t("common.page", { current: meta.current_page, last: meta.last_page })}
                     </span>
 
                     <button
@@ -320,7 +324,7 @@ export default function CarsPage() {
                         disabled={meta.current_page === meta.last_page}
                         onClick={() => handlePageChange(meta.current_page + 1)}
                     >
-                        Suivant
+                        {t("common.next")}
                     </button>
                 </div>
             )}

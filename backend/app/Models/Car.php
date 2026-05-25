@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Car extends Model
 {
@@ -34,9 +35,9 @@ class Car extends Model
     ];
 
     protected $casts = [
-        'featured' => 'boolean',
-        'price' => 'decimal:2',
-        'purchase_price' => 'decimal:2',
+        'featured'               => 'boolean',
+        'price'                  => 'decimal:2',
+        'purchase_price'         => 'decimal:2',
         'first_registration_date' => 'date',
     ];
 
@@ -51,7 +52,7 @@ class Car extends Model
         return $this->hasMany(CarImage::class)->orderBy('sort_order')->orderByDesc('is_main');
     }
 
-    public function mainImage()
+    public function mainImage(): HasOne
     {
         return $this->hasOne(CarImage::class)->where('is_main', true);
     }
@@ -73,6 +74,16 @@ class Car extends Model
 
     public function getTotalExpensesAttribute(): float
     {
+        // withSum('expenses', 'amount') preloads this as a single JOIN — use it if available.
+        if (array_key_exists('expenses_sum_amount', $this->getAttributes())) {
+            return (float) ($this->getAttributes()['expenses_sum_amount'] ?? 0);
+        }
+
+        // with('expenses') eager-loads the collection — sum in memory, no extra query.
+        if ($this->relationLoaded('expenses')) {
+            return (float) $this->expenses->sum('amount');
+        }
+
         return (float) $this->expenses()->sum('amount');
     }
 
@@ -83,6 +94,6 @@ class Car extends Model
 
     public function getEstimatedMarginAttribute(): float
     {
-        return (float) $this->price - $this->total_investment;
+        return (float) ($this->price ?? 0) - $this->total_investment;
     }
 }

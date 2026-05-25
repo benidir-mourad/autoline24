@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 import { useSiteSettings } from "../hooks/useSiteSettings";
 import "../styles/car-detail.css";
 
 export default function CarDetailPage() {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const { contactSettings } = useSiteSettings();
@@ -25,7 +27,7 @@ export default function CarDetailPage() {
             const firstImage = carData?.main_image?.image_url || carData?.images?.[0]?.image_url || "";
             setSelectedImage(firstImage);
         } catch (error) {
-            console.error("Erreur lors du chargement de la voiture :", error);
+            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -85,8 +87,8 @@ export default function CarDetailPage() {
 
     const currentIndex = car?.images?.findIndex((img) => img.image_url === selectedImage) ?? 0;
 
-    if (loading) return <main className="page"><p>Chargement...</p></main>;
-    if (!car) return <main className="page"><p>Voiture introuvable.</p></main>;
+    if (loading) return <main className="page"><p>{t("common.loading")}</p></main>;
+    if (!car) return <main className="page"><p>{t("carDetail.notFound")}</p></main>;
 
     const siteUrl = window.location.origin;
     const pageUrl = `${siteUrl}/cars/${id}`;
@@ -116,6 +118,9 @@ export default function CarDetailPage() {
         ...(car.transmission && { vehicleTransmission: car.transmission }),
         ...(car.color && { color: car.color }),
         ...(car.power_hp && { vehicleEngine: { "@type": "EngineSpecification", enginePower: `${car.power_hp} ch` } }),
+        ...(car.body_type && { bodyType: car.body_type }),
+        ...(car.doors && { numberOfDoors: Number(car.doors) }),
+        ...(car.seats && { seatingCapacity: Number(car.seats) }),
         ...(car.description && { description: car.description }),
         ...(selectedImage && { image: selectedImage }),
         offers: {
@@ -128,12 +133,29 @@ export default function CarDetailPage() {
         seller: { "@type": "AutoDealer", name: "Autoline24", url: siteUrl },
     };
 
+    const breadcrumbSchema = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Catalogue", item: `${siteUrl}/cars` },
+            { "@type": "ListItem", position: 2, name: `${car.brand} ${car.model}`, item: pageUrl },
+        ],
+    };
+
+    const fuelLabel = car.fuel_type
+        ? t(`values.fuelTypes.${car.fuel_type}`, { defaultValue: car.fuel_type })
+        : "";
+    const transmissionLabel = car.transmission
+        ? t(`values.transmissions.${car.transmission}`, { defaultValue: car.transmission })
+        : "";
+
     return (
         <main className="page car-detail">
             <Helmet>
                 <title>{pageTitle}</title>
                 <meta name="description" content={pageDesc} />
                 <link rel="canonical" href={pageUrl} />
+                {car.status === "sold" && <meta name="robots" content="noindex, follow" />}
                 <meta property="og:type" content="product" />
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDesc} />
@@ -142,12 +164,13 @@ export default function CarDetailPage() {
                 <meta name="twitter:card" content="summary_large_image" />
                 {selectedImage && <meta name="twitter:image" content={selectedImage} />}
                 <script type="application/ld+json">{JSON.stringify(carSchema)}</script>
+                <script type="application/ld+json">{JSON.stringify(breadcrumbSchema)}</script>
             </Helmet>
             <div className="page-backlinks">
                 <button type="button" className="page-link-button" onClick={() => navigate(-1)}>
-                    ← Retour
+                    {t("common.back")}
                 </button>
-                <Link to="/cars">Catalogue</Link>
+                <Link to="/cars">{t("carDetail.catalog")}</Link>
             </div>
 
             <section className="car-detail__top">
@@ -157,7 +180,7 @@ export default function CarDetailPage() {
                         <div
                             className="car-detail__image-wrapper"
                             onClick={() => setLightboxOpen(true)}
-                            title="Cliquer pour agrandir"
+                            title={t("carDetail.clickToEnlarge")}
                         >
                             {car.images?.length > 1 && (
                                 <button
@@ -170,6 +193,7 @@ export default function CarDetailPage() {
                                 src={selectedImage}
                                 alt={`${car.brand} ${car.model}`}
                                 className="car-detail__main-image"
+                                fetchpriority="high"
                                 onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/800x500?text=Voiture"; }}
                             />
                             <span className="car-detail__zoom-hint">🔍</span>
@@ -182,7 +206,7 @@ export default function CarDetailPage() {
                             )}
                         </div>
                     ) : (
-                        <div className="car-detail__placeholder">Aucune image</div>
+                        <div className="car-detail__placeholder">{t("carDetail.noImage")}</div>
                     )}
 
                     {car.images?.length > 1 && (
@@ -198,6 +222,7 @@ export default function CarDetailPage() {
                                         src={image.image_url}
                                         alt={`${car.brand} ${car.model}`}
                                         className="car-detail__thumb"
+                                        loading="lazy"
                                         onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/120x80?text=Image"; }}
                                     />
                                 </button>
@@ -215,26 +240,34 @@ export default function CarDetailPage() {
 
                     <div className="car-detail__actions">
                         <Link to={contactUrl} className="car-detail__btn-primary">
-                            Demander plus d'infos
+                            {t("carDetail.askInfo")}
                         </Link>
                         <button
                             type="button"
                             className={`car-detail__btn-secondary ${copied ? "is-copied" : ""}`}
                             onClick={handleShare}
                         >
-                            {copied ? "✓ Lien copié !" : "Partager"}
+                            {copied ? t("carDetail.linkCopied") : t("carDetail.share")}
                         </button>
                     </div>
 
                     <div className="car-detail__specs">
-                        <div className="car-detail__spec"><span>Année</span><strong>{car.year}</strong></div>
-                        <div className="car-detail__spec"><span>Kilométrage</span><strong>{Number(car.mileage).toLocaleString("fr-BE")} km</strong></div>
-                        <div className="car-detail__spec"><span>Carburant</span><strong>{car.fuel_type}</strong></div>
-                        <div className="car-detail__spec"><span>Boîte</span><strong>{car.transmission}</strong></div>
-                        {car.power_hp && <div className="car-detail__spec"><span>Puissance</span><strong>{car.power_hp} ch</strong></div>}
-                        {car.doors && <div className="car-detail__spec"><span>Portes</span><strong>{car.doors}</strong></div>}
-                        {car.seats && <div className="car-detail__spec"><span>Places</span><strong>{car.seats}</strong></div>}
-                        {car.color && <div className="car-detail__spec"><span>Couleur</span><strong>{car.color}</strong></div>}
+                        <div className="car-detail__spec"><span>{t("carDetail.specYear")}</span><strong>{car.year}</strong></div>
+                        <div className="car-detail__spec">
+                            <span>{t("carDetail.specMileage")}</span>
+                            <strong>{t("carDetail.mileageUnit", { value: Number(car.mileage).toLocaleString("fr-BE") })}</strong>
+                        </div>
+                        <div className="car-detail__spec"><span>{t("carDetail.specFuel")}</span><strong>{fuelLabel}</strong></div>
+                        <div className="car-detail__spec"><span>{t("carDetail.specTransmission")}</span><strong>{transmissionLabel}</strong></div>
+                        {car.power_hp && (
+                            <div className="car-detail__spec">
+                                <span>{t("carDetail.specPower")}</span>
+                                <strong>{t("carDetail.powerUnit", { value: car.power_hp })}</strong>
+                            </div>
+                        )}
+                        {car.doors && <div className="car-detail__spec"><span>{t("carDetail.specDoors")}</span><strong>{car.doors}</strong></div>}
+                        {car.seats && <div className="car-detail__spec"><span>{t("carDetail.specSeats")}</span><strong>{car.seats}</strong></div>}
+                        {car.color && <div className="car-detail__spec"><span>{t("carDetail.specColor")}</span><strong>{car.color}</strong></div>}
                     </div>
 
                     <div className="car-detail__contact-panel">
@@ -244,14 +277,14 @@ export default function CarDetailPage() {
 
                     {car.description && (
                         <div className="car-detail__section">
-                            <h2>Description</h2>
+                            <h2>{t("carDetail.sectionDescription")}</h2>
                             <p>{car.description}</p>
                         </div>
                     )}
 
                     {car.options?.length > 0 && (
                         <div className="car-detail__section">
-                            <h2>Options</h2>
+                            <h2>{t("carDetail.sectionOptions")}</h2>
                             <div className="car-detail__badges">
                                 {car.options.map((option) => (
                                     <span key={option.id} className="car-detail__badge">{option.name}</span>
@@ -261,7 +294,7 @@ export default function CarDetailPage() {
                     )}
 
                     {car.reference && (
-                        <p className="car-detail__reference">Réf. {car.reference}</p>
+                        <p className="car-detail__reference">{t("carDetail.reference", { ref: car.reference })}</p>
                     )}
                 </div>
             </section>
@@ -277,7 +310,7 @@ export default function CarDetailPage() {
                         type="button"
                         className="car-lightbox__close"
                         onClick={() => setLightboxOpen(false)}
-                        aria-label="Fermer"
+                        aria-label={t("common.close")}
                     >✕</button>
 
                     {car.images?.length > 1 && (

@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 
 export default function AdminForgotPasswordPage() {
+    const { t } = useTranslation();
     const [email, setEmail] = useState("");
     const [feedback, setFeedback] = useState({ type: "", message: "" });
     const [debugResetUrl, setDebugResetUrl] = useState("");
@@ -19,12 +21,12 @@ export default function AdminForgotPasswordPage() {
             setFeedback({ type: "success", message: response.data.message });
             setDebugResetUrl(response.data.debug_reset_url || "");
         } catch (error) {
-            console.error("Erreur lors de la demande de réinitialisation :", error);
+            console.error(error);
             setFeedback({
                 type: "error",
                 message:
                     error.response?.data?.message ||
-                    "Impossible de lancer la réinitialisation.",
+                    t("admin.recover.errorFallback"),
             });
         } finally {
             setLoading(false);
@@ -34,28 +36,25 @@ export default function AdminForgotPasswordPage() {
     return (
         <main className="page">
             <div className="page-backlinks">
-                <Link to="/admin/login">Retour à la connexion</Link>
+                <Link to="/admin/login">{t("admin.recover.backToLogin")}</Link>
             </div>
 
             <section className="home-hero">
-                <span className="page-eyebrow">Admin</span>
-                <h1>Mot de passe oublié</h1>
-                <p>
-                    Saisissez l'adresse e-mail de votre compte admin pour recevoir un lien
-                    de réinitialisation.
-                </p>
+                <span className="page-eyebrow">{t("admin.recover.eyebrow")}</span>
+                <h1>{t("admin.recover.title")}</h1>
+                <p>{t("admin.recover.description")}</p>
 
                 <form className="filters admin-login-form" onSubmit={handleSubmit}>
                     <input
                         type="email"
                         name="email"
-                        placeholder="E-mail admin"
+                        placeholder={t("admin.recover.emailPlaceholder")}
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
                     />
 
                     <button type="submit" disabled={loading}>
-                        {loading ? "Envoi..." : "Envoyer le lien"}
+                        {loading ? t("admin.recover.sending") : t("admin.recover.submit")}
                     </button>
                 </form>
 
@@ -68,7 +67,7 @@ export default function AdminForgotPasswordPage() {
                 {debugResetUrl && (
                     <div className="page-actions">
                         <a href={debugResetUrl} className="page-button page-button--secondary">
-                            Ouvrir le lien de réinitialisation
+                            {t("admin.recover.openResetLink")}
                         </a>
                     </div>
                 )}

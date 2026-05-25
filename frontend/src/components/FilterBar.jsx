@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "../styles/cars.css";
 
 export default function FilterBar({
@@ -9,6 +10,7 @@ export default function FilterBar({
     onSubmit,
     onReset,
 }) {
+    const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [optionSearch, setOptionSearch] = useState("");
     const dropdownRef = useRef();
@@ -67,26 +69,26 @@ export default function FilterBar({
     return (
         <form className="filters filters--card" onSubmit={onSubmit}>
             <div className="filters__group filters__group--full">
-                <label htmlFor="search">Recherche</label>
+                <label htmlFor="search">{t("filter.search")}</label>
                 <input
                     id="search"
                     type="text"
                     name="search"
-                    placeholder="Marque ou modèle"
+                    placeholder={t("filter.searchPlaceholder")}
                     value={filters.search}
                     onChange={onChange}
                 />
             </div>
 
             <div className="filters__group">
-                <label htmlFor="brand">Marque</label>
+                <label htmlFor="brand">{t("filter.brand")}</label>
                 <select
                     id="brand"
                     name="brand"
                     value={filters.brand}
                     onChange={onChange}
                 >
-                    <option value="">Toutes</option>
+                    <option value="">{t("filter.allBrands")}</option>
                     {brands.map((brand) => (
                         <option key={brand} value={brand}>
                             {brand}
@@ -96,23 +98,23 @@ export default function FilterBar({
             </div>
 
             <div className="filters__group">
-                <label htmlFor="fuel_type">Carburant</label>
+                <label htmlFor="fuel_type">{t("filter.fuel")}</label>
                 <select
                     id="fuel_type"
                     name="fuel_type"
                     value={filters.fuel_type}
                     onChange={onChange}
                 >
-                    <option value="">Tous</option>
-                    <option value="Diesel">Diesel</option>
-                    <option value="Essence">Essence</option>
-                    <option value="Hybride">Hybride</option>
-                    <option value="Électrique">Électrique</option>
+                    <option value="">{t("filter.allFuel")}</option>
+                    <option value="Diesel">{t("values.fuelTypes.Diesel")}</option>
+                    <option value="Essence">{t("values.fuelTypes.Essence")}</option>
+                    <option value="Hybride">{t("values.fuelTypes.Hybride")}</option>
+                    <option value="Électrique">{t("values.fuelTypes.Électrique")}</option>
                 </select>
             </div>
 
             <div className="filters__group">
-                <label htmlFor="min_price">Prix min</label>
+                <label htmlFor="min_price">{t("filter.minPrice")}</label>
                 <input
                     id="min_price"
                     type="number"
@@ -124,7 +126,7 @@ export default function FilterBar({
             </div>
 
             <div className="filters__group">
-                <label htmlFor="max_price">Prix max</label>
+                <label htmlFor="max_price">{t("filter.maxPrice")}</label>
                 <input
                     id="max_price"
                     type="number"
@@ -136,7 +138,7 @@ export default function FilterBar({
             </div>
 
             <div className="filters__group">
-                <label htmlFor="min_year">Année min</label>
+                <label htmlFor="min_year">{t("filter.minYear")}</label>
                 <input
                     id="min_year"
                     type="number"
@@ -148,7 +150,7 @@ export default function FilterBar({
             </div>
 
             <div className="filters__group">
-                <label htmlFor="max_mileage">Km max</label>
+                <label htmlFor="max_mileage">{t("filter.maxMileage")}</label>
                 <input
                     id="max_mileage"
                     type="number"
@@ -160,23 +162,23 @@ export default function FilterBar({
             </div>
 
             <div className="filters__group">
-                <label htmlFor="sort">Tri</label>
+                <label htmlFor="sort">{t("filter.sort")}</label>
                 <select
                     id="sort"
                     name="sort"
                     value={filters.sort}
                     onChange={onChange}
                 >
-                    <option value="">Par défaut</option>
-                    <option value="price_asc">Prix croissant</option>
-                    <option value="price_desc">Prix décroissant</option>
-                    <option value="year_desc">Année récente</option>
-                    <option value="mileage_asc">Kilométrage croissant</option>
+                    <option value="">{t("filter.sortDefault")}</option>
+                    <option value="price_asc">{t("filter.sortPriceAsc")}</option>
+                    <option value="price_desc">{t("filter.sortPriceDesc")}</option>
+                    <option value="year_desc">{t("filter.sortYearDesc")}</option>
+                    <option value="mileage_asc">{t("filter.sortMileageAsc")}</option>
                 </select>
             </div>
 
             <div className="filters__group">
-                <label htmlFor="per_page">Résultats</label>
+                <label htmlFor="per_page">{t("filter.perPage")}</label>
                 <select
                     id="per_page"
                     name="per_page"
@@ -191,7 +193,7 @@ export default function FilterBar({
 
             <div className="filters__group filters__group--full" ref={dropdownRef}>
                 <div className="filters__label-row">
-                    <label>Options</label>
+                    <label>{t("filter.options")}</label>
 
                     {filters.option_ids.length > 0 && (
                         <button
@@ -199,7 +201,7 @@ export default function FilterBar({
                             className="filters__clear-link"
                             onClick={clearAllOptions}
                         >
-                            Tout effacer
+                            {t("filter.clearAll")}
                         </button>
                     )}
                 </div>
@@ -211,8 +213,8 @@ export default function FilterBar({
                         onClick={() => setOpen(!open)}
                     >
                         {filters.option_ids.length > 0
-                            ? `${filters.option_ids.length} option(s) sélectionnée(s)`
-                            : "Toutes les options"}
+                            ? t("filter.optionsSelected", { count: filters.option_ids.length })
+                            : t("filter.allOptions")}
                     </button>
 
                     {open && (
@@ -220,7 +222,7 @@ export default function FilterBar({
                             <input
                                 type="text"
                                 className="dropdown__search"
-                                placeholder="Rechercher une option..."
+                                placeholder={t("filter.optionSearch")}
                                 value={optionSearch}
                                 onChange={(e) => setOptionSearch(e.target.value)}
                             />
@@ -240,7 +242,7 @@ export default function FilterBar({
                                         </label>
                                     ))
                                 ) : (
-                                    <p className="dropdown__empty">Aucune option trouvée.</p>
+                                    <p className="dropdown__empty">{t("filter.noOptions")}</p>
                                 )}
                             </div>
                         </div>
@@ -264,13 +266,13 @@ export default function FilterBar({
             </div>
 
             <div className="filters__actions">
-                <button type="submit">Filtrer</button>
+                <button type="submit">{t("filter.apply")}</button>
                 <button
                     type="button"
                     className="filters__reset"
                     onClick={onReset}
                 >
-                    Réinitialiser
+                    {t("filter.reset")}
                 </button>
             </div>
         </form>

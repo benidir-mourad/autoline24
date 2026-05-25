@@ -1,5 +1,6 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ComboboxSelect from "../components/ComboboxSelect";
 import { CAR_MAKES, getModelsForMake } from "../data/carMakesModels";
@@ -69,11 +70,8 @@ function formatCurrency(value) {
 }
 
 function formatDate(value) {
-    if (!value) return "Date non renseignée";
-
-    return new Intl.DateTimeFormat("fr-BE", {
-        dateStyle: "medium",
-    }).format(new Date(value));
+    if (!value) return null;
+    return new Intl.DateTimeFormat("fr-BE", { dateStyle: "medium" }).format(new Date(value));
 }
 
 function downloadBlob(blob, filename) {
@@ -122,6 +120,7 @@ function AccordionSection({ title, badge, actions, open, onToggle, children }) {
 }
 
 export default function AdminCarFormPage() {
+    const { t } = useTranslation();
     const { id } = useParams();
     const navigate = useNavigate();
     const isEdit = Boolean(id);
@@ -183,13 +182,7 @@ export default function AdminCarFormPage() {
         const estimatedMargin =
             Number(carSummary?.estimated_margin ?? salePrice - totalInvestment);
 
-        return {
-            purchasePrice,
-            salePrice,
-            totalExpenses,
-            totalInvestment,
-            estimatedMargin,
-        };
+        return { purchasePrice, salePrice, totalExpenses, totalInvestment, estimatedMargin };
     }, [carSummary, form.price, form.purchase_price]);
 
     const mainImage = useMemo(
@@ -214,10 +207,7 @@ export default function AdminCarFormPage() {
     }, [expenseFilterCategory, expenses]);
 
     const selectedOptions = useMemo(
-        () =>
-            options.filter((option) =>
-                selectedOptionIds.includes(String(option.id))
-            ),
+        () => options.filter((option) => selectedOptionIds.includes(String(option.id))),
         [options, selectedOptionIds]
     );
 
@@ -281,7 +271,7 @@ export default function AdminCarFormPage() {
             const response = await api.get(`/admin/cars/${id}/images`);
             setImages(response.data.images ?? []);
         } catch (error) {
-            console.error("Erreur lors du chargement des images :", error);
+            console.error(error);
         }
     }, [id]);
 
@@ -305,22 +295,23 @@ export default function AdminCarFormPage() {
                     : prev
             );
         } catch (error) {
-            console.error("Erreur lors du chargement des frais :", error);
+            console.error(error);
             setScopedFeedback(
                 setExpenseFeedback,
                 "error",
-                "Impossible de charger les frais de ce véhicule."
+                t("admin.expenses.expenseLoadError")
             );
         } finally {
             setExpensesLoading(false);
         }
-    }, [id]);
+    }, [id, t]);
+
     const fetchAllOptions = useCallback(async () => {
         try {
             const response = await api.get("/admin/options");
             setOptions(response.data ?? []);
         } catch (error) {
-            console.error("Erreur lors du chargement des options :", error);
+            console.error(error);
         }
     }, []);
 
@@ -330,7 +321,7 @@ export default function AdminCarFormPage() {
             const carOptions = response.data.options ?? [];
             setSelectedOptionIds(carOptions.map((option) => String(option.id)));
         } catch (error) {
-            console.error("Erreur lors du chargement des options du véhicule :", error);
+            console.error(error);
         }
     }, [id]);
 
@@ -347,7 +338,6 @@ export default function AdminCarFormPage() {
 
     function handleChange(event) {
         const { name, value, type, checked } = event.target;
-
         setForm((prev) => ({
             ...prev,
             [name]: type === "checkbox" ? checked : value,
@@ -356,11 +346,7 @@ export default function AdminCarFormPage() {
 
     function handleExpenseChange(event) {
         const { name, value } = event.target;
-
-        setExpenseForm((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+        setExpenseForm((prev) => ({ ...prev, [name]: value }));
     }
 
     function handleExpenseSuggestionSelect(suggestion) {
@@ -416,11 +402,9 @@ export default function AdminCarFormPage() {
     function handleOptionToggle(optionId) {
         setSelectedOptionIds((prev) => {
             const stringId = String(optionId);
-
             if (prev.includes(stringId)) {
                 return prev.filter((currentId) => currentId !== stringId);
             }
-
             return [...prev, stringId];
         });
     }
@@ -431,10 +415,7 @@ export default function AdminCarFormPage() {
         try {
             setFormSaving(true);
             setScopedFeedback(setFormFeedback, "", "");
-            const payload = {
-                ...form,
-                featured: form.featured ? 1 : 0,
-            };
+            const payload = { ...form, featured: form.featured ? 1 : 0 };
 
             let carId = id;
 
@@ -468,7 +449,7 @@ export default function AdminCarFormPage() {
             setScopedFeedback(
                 setFormFeedback,
                 "error",
-                firstError || error.response?.data?.message || "Erreur lors de l'enregistrement."
+                firstError || error.response?.data?.message || t("admin.form.saveFallbackError")
             );
         } finally {
             setFormSaving(false);
@@ -481,7 +462,7 @@ export default function AdminCarFormPage() {
         const trimmedName = newOptionName.trim();
 
         if (!trimmedName) {
-            setOptionCreateError("Entrez un nom d'option.");
+            setOptionCreateError(t("admin.options.optionCreateError"));
             setOptionCreateMessage("");
             return;
         }
@@ -491,10 +472,7 @@ export default function AdminCarFormPage() {
             setOptionCreateError("");
             setOptionCreateMessage("");
 
-            const response = await api.post("/admin/options", {
-                name: trimmedName,
-            });
-
+            const response = await api.post("/admin/options", { name: trimmedName });
             const createdOption = response.data.option;
 
             setOptions((prev) =>
@@ -505,12 +483,12 @@ export default function AdminCarFormPage() {
                 return prev.includes(nextId) ? prev : [...prev, nextId];
             });
             setNewOptionName("");
-            setOptionCreateMessage("Option créée et sélectionnée.");
+            setOptionCreateMessage(t("admin.options.optionCreated"));
         } catch (error) {
-            console.error("Erreur lors de la création de l'option :", error);
+            console.error(error);
             setOptionCreateMessage("");
             setOptionCreateError(
-                error.response?.data?.message || "Impossible de créer cette option."
+                error.response?.data?.message || t("admin.options.optionCreateFallbackError")
             );
         } finally {
             setOptionCreateLoading(false);
@@ -527,11 +505,11 @@ export default function AdminCarFormPage() {
 
             setOptions((prev) => prev.filter((option) => option.id !== optionId));
             setSelectedOptionIds((prev) => prev.filter((value) => value !== String(optionId)));
-            setOptionCreateMessage("Option supprimée.");
+            setOptionCreateMessage(t("admin.options.optionDeleted"));
             setConfirmState({ open: false, type: "", id: null, title: "", message: "" });
         } catch (error) {
-            console.error("Erreur lors de la suppression de l'option :", error);
-            setOptionCreateError("Impossible de supprimer cette option.");
+            console.error(error);
+            setOptionCreateError(t("admin.options.optionDeleteError"));
         } finally {
             setConfirmLoading(false);
         }
@@ -549,29 +527,26 @@ export default function AdminCarFormPage() {
                 option_ids: selectedOptionIds.map((optionId) => Number(optionId)),
             });
 
-            setOptionCreateMessage("Options mises à jour avec succès.");
+            setOptionCreateMessage(t("admin.options.optionUpdateFallback"));
         } catch (error) {
             console.error(error);
             setOptionCreateError(
-                error.response?.data?.message || "Erreur lors de la mise à jour des options."
+                error.response?.data?.message || t("admin.options.optionUpdateError")
             );
         } finally {
             setOptionsLoading(false);
         }
     }
+
     async function handleCreateExpense(event) {
         event.preventDefault();
-
         if (!id) return;
 
         try {
             setExpenseCreateLoading(true);
             setScopedFeedback(setExpenseFeedback, "", "");
 
-            const payload = {
-                ...expenseForm,
-                amount: Number(expenseForm.amount),
-            };
+            const payload = { ...expenseForm, amount: Number(expenseForm.amount) };
 
             if (editingExpenseId) {
                 await api.put(`/admin/expenses/${editingExpenseId}`, payload);
@@ -586,14 +561,14 @@ export default function AdminCarFormPage() {
             setScopedFeedback(
                 setExpenseFeedback,
                 "success",
-                editingExpenseId ? "Frais mis à jour avec succès." : "Frais ajouté avec succès."
+                editingExpenseId ? t("admin.expenses.expenseUpdated") : t("admin.expenses.expenseAdded")
             );
         } catch (error) {
-            console.error("Erreur lors de l'ajout du frais :", error);
+            console.error(error);
             setScopedFeedback(
                 setExpenseFeedback,
                 "error",
-                error.response?.data?.message || "Impossible d'ajouter ce frais."
+                error.response?.data?.message || t("admin.expenses.expenseAddError")
             );
         } finally {
             setExpenseCreateLoading(false);
@@ -632,11 +607,11 @@ export default function AdminCarFormPage() {
             });
             downloadBlob(response.data, `autoline24-voiture-${id}-frais.csv`);
         } catch (error) {
-            console.error("Erreur lors de l'export des frais :", error);
+            console.error(error);
             setScopedFeedback(
                 setExpenseFeedback,
                 "error",
-                "Impossible d'exporter les frais de ce véhicule."
+                t("admin.expenses.expenseExportError")
             );
         } finally {
             setExpenseExportLoading(false);
@@ -651,14 +626,14 @@ export default function AdminCarFormPage() {
             setExpenses((prev) => prev.filter((expense) => expense.id !== expenseId));
             await fetchCar();
             await fetchExpenses();
-            setScopedFeedback(setExpenseFeedback, "success", "Frais supprimé.");
+            setScopedFeedback(setExpenseFeedback, "success", t("admin.expenses.expenseSaved"));
             setConfirmState({ open: false, type: "", id: null, title: "", message: "" });
         } catch (error) {
-            console.error("Erreur lors de la suppression du frais :", error);
+            console.error(error);
             setScopedFeedback(
                 setExpenseFeedback,
                 "error",
-                error.response?.data?.message || "Impossible de supprimer ce frais."
+                error.response?.data?.message || t("admin.expenses.expenseAddError")
             );
         } finally {
             setConfirmLoading(false);
@@ -685,13 +660,13 @@ export default function AdminCarFormPage() {
             const count = selectedFiles.length;
             clearAllFiles();
             await fetchImages();
-            setScopedFeedback(setImageFeedback, "success", `${count} image(s) ajoutée(s) avec succès.`);
+            setScopedFeedback(setImageFeedback, "success", t("admin.images.imagesAdded", { count }));
         } catch (error) {
             console.error(error);
             setScopedFeedback(
                 setImageFeedback,
                 "error",
-                error.response?.data?.message || "Erreur lors de l'upload des images."
+                error.response?.data?.message || t("admin.images.imageAddError")
             );
         } finally {
             setImageLoading(false);
@@ -703,14 +678,13 @@ export default function AdminCarFormPage() {
             setScopedFeedback(setImageFeedback, "", "");
             await api.patch(`/admin/images/${imageId}/set-main`);
             await fetchImages();
-            setScopedFeedback(setImageFeedback, "success", "Image principale mise à jour.");
+            setScopedFeedback(setImageFeedback, "success", t("admin.images.imageAdded"));
         } catch (error) {
             console.error(error);
             setScopedFeedback(
                 setImageFeedback,
                 "error",
-                error.response?.data?.message ||
-                    "Erreur lors du changement d'image principale."
+                error.response?.data?.message || t("admin.images.imageSetMainError")
             );
         }
     }
@@ -721,14 +695,14 @@ export default function AdminCarFormPage() {
             setScopedFeedback(setImageFeedback, "", "");
             await api.delete(`/admin/images/${imageId}`);
             await fetchImages();
-            setScopedFeedback(setImageFeedback, "success", "Image supprimée.");
+            setScopedFeedback(setImageFeedback, "success", t("admin.images.imageDeleted"));
             setConfirmState({ open: false, type: "", id: null, title: "", message: "" });
         } catch (error) {
             console.error(error);
             setScopedFeedback(
                 setImageFeedback,
                 "error",
-                error.response?.data?.message || "Erreur lors de la suppression de l'image."
+                error.response?.data?.message || t("admin.images.imageDeleteError")
             );
         } finally {
             setConfirmLoading(false);
@@ -740,8 +714,8 @@ export default function AdminCarFormPage() {
             open: true,
             type: "option",
             id: option.id,
-            title: "Supprimer cette option ?",
-            message: `L'option ${option.name} sera retirée de toutes les voitures.`,
+            title: t("admin.options.deleteTitle"),
+            message: t("admin.options.deleteMessage", { name: option.name }),
         });
     }
 
@@ -750,67 +724,56 @@ export default function AdminCarFormPage() {
             open: true,
             type: "image",
             id: image.id,
-            title: "Supprimer cette image ?",
-            message: "Cette image sera retirée définitivement du véhicule.",
+            title: t("admin.images.deleteTitle"),
+            message: t("admin.images.deleteMessage"),
         });
     }
 
     function openDeleteExpenseConfirm(expense) {
+        const dateStr = formatDate(expense.expense_date) ?? t("admin.dateFallback");
         setConfirmState({
             open: true,
             type: "expense",
             id: expense.id,
-            title: "Supprimer ce frais ?",
-            message: `Le frais "${expense.expense_type}" du ${formatDate(
-                expense.expense_date
-            )} sera supprimé.`,
+            title: t("admin.expenses.deleteTitle"),
+            message: t("admin.expenses.deleteMessage", { type: expense.expense_type, date: dateStr }),
         });
     }
 
     function closeConfirmDialog() {
         if (confirmLoading) return;
-
         setConfirmState({ open: false, type: "", id: null, title: "", message: "" });
     }
 
     function handleConfirmAction() {
-        if (confirmState.type === "option") {
-            handleDeleteOption(confirmState.id);
-            return;
-        }
-
-        if (confirmState.type === "image") {
-            handleDeleteImage(confirmState.id);
-            return;
-        }
-
-        if (confirmState.type === "expense") {
-            handleDeleteExpense(confirmState.id);
-        }
+        if (confirmState.type === "option") { handleDeleteOption(confirmState.id); return; }
+        if (confirmState.type === "image") { handleDeleteImage(confirmState.id); return; }
+        if (confirmState.type === "expense") { handleDeleteExpense(confirmState.id); }
     }
 
     if (loading) {
         return (
             <main className="page">
-                <p>Chargement...</p>
+                <p>{t("common.loading")}</p>
             </main>
         );
     }
+
     return (
         <main className="page admin-page">
             <div className="page-backlinks admin-print-hidden">
                 <button type="button" className="page-link-button" onClick={() => navigate(-1)}>
-                    Retour
+                    {t("common.back")}
                 </button>
-                <Link to="/admin">Retour au choix admin</Link>
-                <Link to="/admin/cars">Retour à la liste admin</Link>
-                <Link to="/admin/settings">Paramètres contact</Link>
-                <Link to="/cars">Voir le site</Link>
+                <Link to="/admin">{t("admin.backToAdmin")}</Link>
+                <Link to="/admin/cars">{t("admin.backToCars")}</Link>
+                <Link to="/admin/settings">{t("admin.seeSettings")}</Link>
+                <Link to="/cars">{t("admin.seeSite")}</Link>
             </div>
 
             <div className="admin-page__header admin-page__header--stacked">
                 <div>
-                    <h1>{isEdit ? "Modifier une voiture" : "Ajouter une voiture"}</h1>
+                    <h1>{isEdit ? t("admin.editCarTitle") : t("admin.addCarTitle")}</h1>
                     {isEdit && carSummary && (
                         <p className="admin-page__subtitle">
                             {carSummary.brand} {carSummary.model}
@@ -828,7 +791,7 @@ export default function AdminCarFormPage() {
                             onClick={handleExportExpenses}
                             disabled={expenseExportLoading}
                         >
-                            {expenseExportLoading ? "Export..." : "Exporter les frais"}
+                            {expenseExportLoading ? t("admin.exporting") : t("admin.exportExpenses")}
                         </button>
 
                         <button
@@ -836,7 +799,7 @@ export default function AdminCarFormPage() {
                             className="admin-button admin-button--secondary"
                             onClick={handlePrintSheet}
                         >
-                            Imprimer la fiche
+                            {t("admin.printSheet")}
                         </button>
                     </div>
                 )}
@@ -855,23 +818,25 @@ export default function AdminCarFormPage() {
                             {mainImage ? (
                                 <img
                                     src={mainImage.image_url}
-                                    alt={`${carSummary?.brand || "Voiture"} ${carSummary?.model || ""}`}
+                                    alt={`${carSummary?.brand || ""} ${carSummary?.model || ""}`}
                                     className="admin-vehicle-sheet__image"
                                 />
                             ) : (
                                 <div className="admin-vehicle-sheet__placeholder">
-                                    Aucune image principale
+                                    {t("admin.noMainImage")}
                                 </div>
                             )}
                         </div>
 
                         <div className="admin-vehicle-sheet__content">
                             <div className="admin-vehicle-sheet__badges">
-                                <span className="admin-badge">{form.status}</span>
-                                <span className="admin-badge admin-badge--muted">
-                                    {form.publication_status}
+                                <span className="admin-badge">
+                                    {t(`values.statuses.${form.status}`, { defaultValue: form.status })}
                                 </span>
-                                {form.featured && <span className="admin-badge">Mise en avant</span>}
+                                <span className="admin-badge admin-badge--muted">
+                                    {t(`values.publicationStatuses.${form.publication_status}`, { defaultValue: form.publication_status })}
+                                </span>
+                                {form.featured && <span className="admin-badge">{t("admin.featured")}</span>}
                             </div>
 
                             <h2>
@@ -880,48 +845,45 @@ export default function AdminCarFormPage() {
                             </h2>
 
                             <div className="admin-vehicle-sheet__facts">
-                                <span>{form.year || "Année non renseignée"}</span>
-                                <span>{form.mileage ? `${form.mileage} km` : "Kilométrage à compléter"}</span>
+                                <span>{form.year || t("admin.yearFallback")}</span>
+                                <span>{form.mileage ? `${form.mileage} km` : t("admin.mileageFallback")}</span>
                                 <span>{form.fuel_type}</span>
                                 <span>{form.transmission}</span>
-                                <span>{form.color || "Couleur à compléter"}</span>
-                                <span>{form.body_type || "Carrosserie à compléter"}</span>
+                                <span>{form.color || t("admin.colorFallback")}</span>
+                                <span>{form.body_type || t("admin.bodyTypeFallback")}</span>
                             </div>
 
                             <div className="admin-vehicle-sheet__stats">
                                 <div>
-                                    <span>Prix de vente</span>
+                                    <span>{t("admin.salePrice")}</span>
                                     <strong>{formatCurrency(financialSummary.salePrice)}</strong>
                                 </div>
                                 <div>
-                                    <span>Prix d'achat</span>
+                                    <span>{t("admin.purchasePrice")}</span>
                                     <strong>{formatCurrency(financialSummary.purchasePrice)}</strong>
                                 </div>
                                 <div>
-                                    <span>Options actives</span>
+                                    <span>{t("admin.activeOptions")}</span>
                                     <strong>{selectedOptionIds.length}</strong>
                                 </div>
                                 <div>
-                                    <span>Images</span>
+                                    <span>{t("admin.images")}</span>
                                     <strong>{images.length}</strong>
                                 </div>
                             </div>
 
                             <div className="admin-vehicle-sheet__options">
-                                <span>Options actives</span>
+                                <span>{t("admin.activeOptions")}</span>
                                 <div className="admin-vehicle-sheet__option-list">
                                     {selectedOptions.length > 0 ? (
                                         selectedOptions.map((option) => (
-                                            <span
-                                                key={option.id}
-                                                className="admin-badge admin-badge--muted"
-                                            >
+                                            <span key={option.id} className="admin-badge admin-badge--muted">
                                                 {option.name}
                                             </span>
                                         ))
                                     ) : (
                                         <span className="admin-vehicle-sheet__empty">
-                                            Aucune option sélectionnée
+                                            {t("admin.noOptionSelected")}
                                         </span>
                                     )}
                                 </div>
@@ -931,32 +893,30 @@ export default function AdminCarFormPage() {
 
                     <section className="admin-summary-section">
                         <div className="admin-summary-card">
-                            <span>Prix d'achat</span>
+                            <span>{t("admin.financialSummary.purchasePrice")}</span>
                             <strong>{formatCurrency(financialSummary.purchasePrice)}</strong>
                         </div>
                         <div className="admin-summary-card">
-                            <span>Total des frais</span>
+                            <span>{t("admin.financialSummary.totalExpenses")}</span>
                             <strong>{formatCurrency(financialSummary.totalExpenses)}</strong>
                         </div>
                         <div className="admin-summary-card">
-                            <span>Investissement total</span>
+                            <span>{t("admin.financialSummary.totalInvestment")}</span>
                             <strong>{formatCurrency(financialSummary.totalInvestment)}</strong>
                         </div>
                         <div
                             className={`admin-summary-card ${
-                                financialSummary.estimatedMargin >= 0
-                                    ? "is-positive"
-                                    : "is-negative"
+                                financialSummary.estimatedMargin >= 0 ? "is-positive" : "is-negative"
                             }`}
                         >
-                            <span>Marge estimée</span>
+                            <span>{t("admin.financialSummary.estimatedMargin")}</span>
                             <strong>{formatCurrency(financialSummary.estimatedMargin)}</strong>
                         </div>
                     </section>
 
                     <AccordionSection
-                        title="Suivi des frais"
-                        badge={`${expenses.length} frais · ${formatCurrency(financialSummary.totalExpenses)}`}
+                        title={t("admin.expenses.sectionTitle")}
+                        badge={`${expenses.length} · ${formatCurrency(financialSummary.totalExpenses)}`}
                         open={openSections.expenses}
                         onToggle={() => toggleSection("expenses")}
                         actions={
@@ -964,14 +924,13 @@ export default function AdminCarFormPage() {
                                 value={expenseFilterCategory}
                                 onChange={(e) => setExpenseFilterCategory(e.target.value)}
                             >
-                                <option value="all">Toutes les catégories</option>
+                                <option value="all">{t("admin.expenses.allCategories")}</option>
                                 {expenseCategories.map((cat) => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>
                         }
                     >
-
                         {expenseFeedback.message && (
                             <p className={`admin-feedback admin-feedback--${expenseFeedback.type}`}>
                                 {expenseFeedback.message}
@@ -979,23 +938,13 @@ export default function AdminCarFormPage() {
                         )}
 
                         <form className="admin-expense-form" onSubmit={handleCreateExpense}>
-                            <select
-                                name="category"
-                                value={expenseForm.category}
-                                onChange={handleExpenseChange}
-                            >
+                            <select name="category" value={expenseForm.category} onChange={handleExpenseChange}>
                                 {expenseCategories.map((category) => (
-                                    <option key={category} value={category}>
-                                        {category}
-                                    </option>
+                                    <option key={category} value={category}>{category}</option>
                                 ))}
                             </select>
 
-                            <select
-                                name="expense_type"
-                                value={expenseForm.expense_type}
-                                onChange={handleExpenseChange}
-                            >
+                            <select name="expense_type" value={expenseForm.expense_type} onChange={handleExpenseChange}>
                                 {suggestedExpenses.map((suggestion) => (
                                     <option
                                         key={`${suggestion.category}-${suggestion.expense_type}`}
@@ -1011,7 +960,7 @@ export default function AdminCarFormPage() {
                                 step="0.01"
                                 min="0"
                                 name="amount"
-                                placeholder="Montant"
+                                placeholder={t("admin.expenses.amountPlaceholder")}
                                 value={expenseForm.amount}
                                 onChange={handleExpenseChange}
                                 required
@@ -1028,21 +977,17 @@ export default function AdminCarFormPage() {
                             <input
                                 type="text"
                                 name="description"
-                                placeholder="Description ou note"
+                                placeholder={t("admin.expenses.descriptionPlaceholder")}
                                 value={expenseForm.description}
                                 onChange={handleExpenseChange}
                             />
 
-                            <button
-                                type="submit"
-                                className="admin-button"
-                                disabled={expenseCreateLoading}
-                            >
+                            <button type="submit" className="admin-button" disabled={expenseCreateLoading}>
                                 {expenseCreateLoading
-                                    ? "Enregistrement..."
+                                    ? t("admin.expenses.saving")
                                     : editingExpenseId
-                                      ? "Enregistrer le frais"
-                                      : "Ajouter le frais"}
+                                      ? t("admin.expenses.saveExpense")
+                                      : t("admin.expenses.addExpense")}
                             </button>
 
                             {editingExpenseId && (
@@ -1052,7 +997,7 @@ export default function AdminCarFormPage() {
                                     onClick={handleCancelExpenseEdit}
                                     disabled={expenseCreateLoading}
                                 >
-                                    Annuler
+                                    {t("admin.expenses.cancelEdit")}
                                 </button>
                             )}
                         </form>
@@ -1085,7 +1030,7 @@ export default function AdminCarFormPage() {
                         </div>
 
                         {expensesLoading ? (
-                            <p>Chargement des frais...</p>
+                            <p>{t("admin.expenses.loadingExpenses")}</p>
                         ) : filteredExpenses.length > 0 ? (
                             <div className="admin-expenses-list">
                                 {filteredExpenses.map((expense) => (
@@ -1096,9 +1041,8 @@ export default function AdminCarFormPage() {
                                                     {expense.category}
                                                 </span>
                                                 <h3>{expense.expense_type}</h3>
-                                                <p>{formatDate(expense.expense_date)}</p>
+                                                <p>{formatDate(expense.expense_date) ?? t("admin.dateFallback")}</p>
                                             </div>
-
                                             <strong>{formatCurrency(expense.amount)}</strong>
                                         </div>
 
@@ -1114,7 +1058,7 @@ export default function AdminCarFormPage() {
                                                 className="admin-link admin-print-hidden"
                                                 onClick={() => handleEditExpense(expense)}
                                             >
-                                                Modifier
+                                                {t("common.edit")}
                                             </button>
 
                                             <button
@@ -1122,7 +1066,7 @@ export default function AdminCarFormPage() {
                                                 className="admin-link admin-link--danger admin-print-hidden"
                                                 onClick={() => openDeleteExpenseConfirm(expense)}
                                             >
-                                                Supprimer
+                                                {t("common.delete")}
                                             </button>
                                         </div>
                                     </article>
@@ -1131,8 +1075,8 @@ export default function AdminCarFormPage() {
                         ) : (
                             <p>
                                 {expenseFilterCategory === "all"
-                                    ? "Aucun frais ajouté pour le moment."
-                                    : "Aucun frais dans cette catégorie pour le moment."}
+                                    ? t("admin.expenses.noExpenses")
+                                    : t("admin.expenses.noExpensesInCategory")}
                             </p>
                         )}
                     </AccordionSection>
@@ -1140,116 +1084,118 @@ export default function AdminCarFormPage() {
             )}
 
             <AccordionSection
-                title="Informations"
+                title={t("admin.form.sectionInfo")}
                 open={openSections.info}
                 onToggle={() => toggleSection("info")}
             >
-            <form id="car-form" className="admin-form" onSubmit={handleSubmit}>
-                <div className="admin-form__field">
-                    <span className="admin-form__field-label">Marque <span className="admin-form__required">*</span></span>
-                    <ComboboxSelect
-                        value={form.brand}
-                        options={CAR_MAKES}
-                        placeholder="Marque"
-                        onChange={(val) => setForm((f) => ({ ...f, brand: val, model: "" }))}
-                    />
-                </div>
-                <div className="admin-form__field">
-                    <span className="admin-form__field-label">Modèle <span className="admin-form__required">*</span></span>
-                    <ComboboxSelect
-                        value={form.model}
-                        options={getModelsForMake(form.brand)}
-                        placeholder={form.brand ? "Modèle" : "Sélectionnez d'abord une marque"}
-                        disabled={false}
-                        onChange={(val) => setForm((f) => ({ ...f, model: val }))}
-                    />
-                </div>
-                <input name="version" placeholder="Version" value={form.version} onChange={handleChange} />
-                <div className="admin-form__field">
-                    <span className="admin-form__field-label">Année <span className="admin-form__required">*</span></span>
-                    <input name="year" type="number" placeholder="Ex: 2021" value={form.year} onChange={handleChange} />
-                </div>
-                <div className="admin-form__field">
-                    <span className="admin-form__field-label">Kilométrage <span className="admin-form__required">*</span></span>
-                    <input name="mileage" type="number" placeholder="Ex: 45000" value={form.mileage} onChange={handleChange} />
-                </div>
-                <div className="admin-form__field">
-                    <span className="admin-form__field-label">Prix de vente <span className="admin-form__required">*</span></span>
-                    <input name="price" type="number" placeholder="Ex: 12500" value={form.price} onChange={handleChange} />
-                </div>
-                <input name="purchase_price" type="number" placeholder="Prix d'achat" value={form.purchase_price} onChange={handleChange} />
+                <form id="car-form" className="admin-form" onSubmit={handleSubmit}>
+                    <div className="admin-form__field">
+                        <span className="admin-form__field-label">{t("admin.form.brandRequired")}</span>
+                        <ComboboxSelect
+                            value={form.brand}
+                            options={CAR_MAKES}
+                            placeholder={t("admin.form.brand")}
+                            onChange={(val) => setForm((f) => ({ ...f, brand: val, model: "" }))}
+                        />
+                    </div>
+                    <div className="admin-form__field">
+                        <span className="admin-form__field-label">{t("admin.form.modelRequired")}</span>
+                        <ComboboxSelect
+                            value={form.model}
+                            options={getModelsForMake(form.brand)}
+                            placeholder={form.brand ? t("admin.form.model") : t("admin.form.modelPlaceholder")}
+                            disabled={false}
+                            onChange={(val) => setForm((f) => ({ ...f, model: val }))}
+                        />
+                    </div>
+                    <input name="version" placeholder={t("admin.form.version")} value={form.version} onChange={handleChange} />
+                    <div className="admin-form__field">
+                        <span className="admin-form__field-label">{t("admin.form.yearRequired")}</span>
+                        <input name="year" type="number" placeholder={t("admin.form.yearPlaceholder")} value={form.year} onChange={handleChange} />
+                    </div>
+                    <div className="admin-form__field">
+                        <span className="admin-form__field-label">{t("admin.form.mileageRequired")}</span>
+                        <input name="mileage" type="number" placeholder={t("admin.form.mileagePlaceholder")} value={form.mileage} onChange={handleChange} />
+                    </div>
+                    <div className="admin-form__field">
+                        <span className="admin-form__field-label">{t("admin.form.salePriceRequired")}</span>
+                        <input name="price" type="number" placeholder={t("admin.form.salePricePlaceholder")} value={form.price} onChange={handleChange} />
+                    </div>
+                    <input name="purchase_price" type="number" placeholder={t("admin.form.purchasePricePlaceholder")} value={form.purchase_price} onChange={handleChange} />
 
-                <div className="admin-form__field">
-                    <span className="admin-form__field-label">Carburant <span className="admin-form__required">*</span></span>
-                    <select name="fuel_type" value={form.fuel_type} onChange={handleChange}>
-                        <option value="Diesel">Diesel</option>
-                        <option value="Essence">Essence</option>
-                        <option value="Hybride">Hybride</option>
-                        <option value="Électrique">Électrique</option>
-                    </select>
-                </div>
+                    <div className="admin-form__field">
+                        <span className="admin-form__field-label">{t("admin.form.fuelRequired")}</span>
+                        <select name="fuel_type" value={form.fuel_type} onChange={handleChange}>
+                            <option value="Diesel">Diesel</option>
+                            <option value="Essence">Essence</option>
+                            <option value="Hybride">Hybride</option>
+                            <option value="Électrique">Électrique</option>
+                        </select>
+                    </div>
 
-                <div className="admin-form__field">
-                    <span className="admin-form__field-label">Transmission <span className="admin-form__required">*</span></span>
-                    <select name="transmission" value={form.transmission} onChange={handleChange}>
-                        <option value="Manuelle">Manuelle</option>
-                        <option value="Automatique">Automatique</option>
-                    </select>
-                </div>
+                    <div className="admin-form__field">
+                        <span className="admin-form__field-label">{t("admin.form.transmissionRequired")}</span>
+                        <select name="transmission" value={form.transmission} onChange={handleChange}>
+                            <option value="Manuelle">Manuelle</option>
+                            <option value="Automatique">Automatique</option>
+                        </select>
+                    </div>
 
-                <input name="power_hp" type="number" placeholder="Puissance (ch)" value={form.power_hp} onChange={handleChange} />
-                <input name="fiscal_power" type="number" placeholder="Puissance fiscale" value={form.fiscal_power} onChange={handleChange} />
-                <input name="engine_size" type="number" placeholder="Cylindrée" value={form.engine_size} onChange={handleChange} />
-                <input name="doors" type="number" placeholder="Portes" value={form.doors} onChange={handleChange} />
-                <input name="seats" type="number" placeholder="Places" value={form.seats} onChange={handleChange} />
-                <input name="color" placeholder="Couleur" value={form.color} onChange={handleChange} />
-                <input name="body_type" placeholder="Carrosserie" value={form.body_type} onChange={handleChange} />
-                <input name="first_registration_date" type="date" value={form.first_registration_date} onChange={handleChange} />
-                <input name="reference" placeholder="Référence" value={form.reference} onChange={handleChange} />
+                    <input name="power_hp" type="number" placeholder={t("admin.form.powerPlaceholder")} value={form.power_hp} onChange={handleChange} />
+                    <input name="fiscal_power" type="number" placeholder={t("admin.form.fiscalPowerPlaceholder")} value={form.fiscal_power} onChange={handleChange} />
+                    <input name="engine_size" type="number" placeholder={t("admin.form.engineSizePlaceholder")} value={form.engine_size} onChange={handleChange} />
+                    <input name="doors" type="number" placeholder={t("admin.form.doorsPlaceholder")} value={form.doors} onChange={handleChange} />
+                    <input name="seats" type="number" placeholder={t("admin.form.seatsPlaceholder")} value={form.seats} onChange={handleChange} />
+                    <input name="color" placeholder={t("admin.form.colorPlaceholder")} value={form.color} onChange={handleChange} />
+                    <input name="body_type" placeholder={t("admin.form.bodyTypePlaceholder")} value={form.body_type} onChange={handleChange} />
+                    <input name="first_registration_date" type="date" value={form.first_registration_date} onChange={handleChange} />
+                    <input name="reference" placeholder={t("admin.form.referencePlaceholder")} value={form.reference} onChange={handleChange} />
 
-                <div className="admin-form__field">
-                    <span className="admin-form__field-label">Statut <span className="admin-form__required">*</span></span>
-                    <select name="status" value={form.status} onChange={handleChange}>
-                        <option value="available">Disponible</option>
-                        <option value="reserved">Réservée</option>
-                        <option value="sold">Vendue</option>
-                    </select>
-                </div>
+                    <div className="admin-form__field">
+                        <span className="admin-form__field-label">{t("admin.form.statusRequired")}</span>
+                        <select name="status" value={form.status} onChange={handleChange}>
+                            <option value="available">{t("values.statuses.available")}</option>
+                            <option value="reserved">{t("values.statuses.reserved")}</option>
+                            <option value="sold">{t("values.statuses.sold")}</option>
+                        </select>
+                    </div>
 
-                <div className="admin-form__field">
-                    <span className="admin-form__field-label">Publication <span className="admin-form__required">*</span></span>
-                    <select name="publication_status" value={form.publication_status} onChange={handleChange}>
-                        <option value="published">Publiée</option>
-                        <option value="draft">Brouillon</option>
-                    </select>
-                </div>
+                    <div className="admin-form__field">
+                        <span className="admin-form__field-label">{t("admin.form.publicationRequired")}</span>
+                        <select name="publication_status" value={form.publication_status} onChange={handleChange}>
+                            <option value="published">{t("values.publicationStatuses.published")}</option>
+                            <option value="draft">{t("values.publicationStatuses.draft")}</option>
+                        </select>
+                    </div>
 
-                <label className="admin-checkbox">
-                    <input
-                        type="checkbox"
-                        name="featured"
-                        checked={form.featured}
+                    <label className="admin-checkbox">
+                        <input
+                            type="checkbox"
+                            name="featured"
+                            checked={form.featured}
+                            onChange={handleChange}
+                        />
+                        <span>{t("admin.form.featured")}</span>
+                    </label>
+
+                    <textarea
+                        name="description"
+                        placeholder={t("admin.form.descriptionPlaceholder")}
+                        rows="5"
+                        value={form.description}
                         onChange={handleChange}
                     />
-                    <span>Mettre en avant</span>
-                </label>
 
-                <textarea
-                    name="description"
-                    placeholder="Description"
-                    rows="5"
-                    value={form.description}
-                    onChange={handleChange}
-                />
-
-                <p className="admin-form__required-note"><span className="admin-form__required">*</span> Champs obligatoires</p>
-
-            </form>
+                    <p className="admin-form__required-note">
+                        <span className="admin-form__required">{t("admin.form.required")}</span>{" "}
+                        {t("admin.form.requiredNote").replace("* ", "")}
+                    </p>
+                </form>
             </AccordionSection>
 
             <AccordionSection
-                title="Options"
-                badge={`${selectedOptionIds.length} sélectionnée(s)`}
+                title={t("admin.options.sectionTitle")}
+                badge={t("admin.options.selected", { count: selectedOptionIds.length })}
                 open={openSections.options}
                 onToggle={() => toggleSection("options")}
                 actions={isEdit && (
@@ -1259,7 +1205,7 @@ export default function AdminCarFormPage() {
                         onClick={handleSaveOptionsOnly}
                         disabled={optionsLoading}
                     >
-                        {optionsLoading ? "Enregistrement..." : "Mettre à jour les options"}
+                        {optionsLoading ? t("admin.options.updating") : t("admin.options.updateOptions")}
                     </button>
                 )}
             >
@@ -1268,11 +1214,11 @@ export default function AdminCarFormPage() {
                         type="text"
                         value={newOptionName}
                         onChange={(event) => setNewOptionName(event.target.value)}
-                        placeholder="Nouvelle option"
+                        placeholder={t("admin.options.newOptionPlaceholder")}
                     />
 
                     <button type="submit" className="admin-button" disabled={optionCreateLoading}>
-                        {optionCreateLoading ? "Création..." : "Créer l'option"}
+                        {optionCreateLoading ? t("admin.options.creating") : t("admin.options.createOption")}
                     </button>
                 </form>
 
@@ -1302,175 +1248,158 @@ export default function AdminCarFormPage() {
                                     className="admin-link admin-link--danger"
                                     onClick={() => openDeleteOptionConfirm(option)}
                                 >
-                                    Supprimer
+                                    {t("admin.options.deleteOption")}
                                 </button>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p>Aucune option disponible.</p>
+                    <p>{t("admin.options.noOptions")}</p>
                 )}
             </AccordionSection>
 
             <AccordionSection
-                title="Images"
-                badge={images.length > 0 ? `${images.length} photo(s)` : undefined}
+                title={t("admin.images.sectionTitle")}
+                badge={images.length > 0 ? t("admin.images.photosCount", { count: images.length }) : undefined}
                 open={openSections.images}
                 onToggle={() => toggleSection("images")}
             >
-                    {imageFeedback.message && (
-                        <p className={`admin-feedback admin-feedback--${imageFeedback.type}`}>
-                            {imageFeedback.message}
-                        </p>
-                    )}
+                {imageFeedback.message && (
+                    <p className={`admin-feedback admin-feedback--${imageFeedback.type}`}>
+                        {imageFeedback.message}
+                    </p>
+                )}
 
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleFileChange}
-                        className="admin-images-input"
-                    />
-                    <input
-                        ref={cameraInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handleFileChange}
-                        className="admin-images-input"
-                    />
+                <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileChange} className="admin-images-input" />
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="admin-images-input" />
 
-                    <button
-                        type="button"
-                        className={`admin-upload-dropzone ${isDragOver ? "is-dragover" : ""}`}
-                        onClick={() => fileInputRef.current?.click()}
-                        onDrop={handleDrop}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                    >
-                        <span className="admin-upload-dropzone__icon">+</span>
-                        <strong>Déposer des images ici</strong>
-                        <span>ou cliquer pour sélectionner plusieurs photos</span>
-                    </button>
+                <button
+                    type="button"
+                    className={`admin-upload-dropzone ${isDragOver ? "is-dragover" : ""}`}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                >
+                    <span className="admin-upload-dropzone__icon">+</span>
+                    <strong>{t("admin.images.dropzone")}</strong>
+                    <span>{t("admin.images.dropzoneHint")}</span>
+                </button>
 
-                    <button
-                        type="button"
-                        className="admin-button admin-button--secondary admin-camera-button"
-                        onClick={() => cameraInputRef.current?.click()}
-                    >
-                        Prendre une photo
-                    </button>
+                <button
+                    type="button"
+                    className="admin-button admin-button--secondary admin-camera-button"
+                    onClick={() => cameraInputRef.current?.click()}
+                >
+                    {t("admin.images.takePhoto")}
+                </button>
 
-                    {selectedFiles.length > 0 && (
-                        <div className="admin-upload-queue">
-                            <div className="admin-upload-queue__header">
-                                <span>{selectedFiles.length} photo(s) sélectionnée(s)</span>
-                                <button
-                                    type="button"
-                                    className="admin-link"
-                                    onClick={clearAllFiles}
-                                    disabled={imageLoading}
-                                >
-                                    Tout retirer
-                                </button>
-                            </div>
+                {selectedFiles.length > 0 && (
+                    <div className="admin-upload-queue">
+                        <div className="admin-upload-queue__header">
+                            <span>{t("admin.images.selectedCount", { count: selectedFiles.length })}</span>
+                            <button
+                                type="button"
+                                className="admin-link"
+                                onClick={clearAllFiles}
+                                disabled={imageLoading}
+                            >
+                                {t("admin.images.removeAll")}
+                            </button>
+                        </div>
 
-                            <div className="admin-upload-queue__grid">
-                                {previewItems.map((item, index) => (
-                                    <div key={index} className="admin-upload-thumb">
-                                        <img src={item.url} alt={item.file.name} />
-                                        <button
-                                            type="button"
-                                            className="admin-upload-thumb__remove"
-                                            onClick={() => removeFile(index)}
-                                            disabled={imageLoading}
-                                            aria-label="Retirer cette image"
-                                        >
-                                            ×
-                                        </button>
-                                        {index === 0 && images.length === 0 && (
-                                            <span className="admin-upload-thumb__badge">Principale</span>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="admin-upload-queue__actions">
-                                {isEdit ? (
+                        <div className="admin-upload-queue__grid">
+                            {previewItems.map((item, index) => (
+                                <div key={index} className="admin-upload-thumb">
+                                    <img src={item.url} alt={item.file.name} />
                                     <button
                                         type="button"
-                                        className="admin-button"
-                                        onClick={handleImageUpload}
+                                        className="admin-upload-thumb__remove"
+                                        onClick={() => removeFile(index)}
                                         disabled={imageLoading}
+                                        aria-label={t("admin.images.removeThumb")}
                                     >
-                                        {imageLoading
-                                            ? "Upload en cours..."
-                                            : `Envoyer ${selectedFiles.length} image(s)`}
+                                        ×
                                     </button>
-                                ) : (
-                                    <span className="admin-upload-preview__hint">
-                                        Ces images seront envoyées après l’enregistrement de la voiture.
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {isEdit && images.length > 0 ? (
-                        <div className="admin-images-grid">
-                            {images.map((image) => (
-                                <div
-                                    key={image.id}
-                                    className={`admin-image-card ${image.is_main ? "is-main" : ""}`}
-                                >
-                                    <img
-                                        src={image.image_url}
-                                        alt="Voiture"
-                                        className="admin-image-card__img"
-                                    />
-
-                                    <div className="admin-image-card__content">
-                                        <div className="admin-image-card__meta">
-                                            {image.is_main ? (
-                                                <span className="admin-image-card__badge">
-                                                    Image principale
-                                                </span>
-                                            ) : (
-                                                <span className="admin-image-card__hint">
-                                                    Image secondaire
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <div className="admin-image-card__actions">
-                                            {!image.is_main && (
-                                                <button
-                                                    type="button"
-                                                    className="admin-link"
-                                                    onClick={() => handleSetMain(image.id)}
-                                                >
-                                                    Définir principale
-                                                </button>
-                                            )}
-
-                                            <button
-                                                type="button"
-                                                className="admin-link admin-link--danger"
-                                                onClick={() => openDeleteImageConfirm(image)}
-                                            >
-                                                Supprimer
-                                            </button>
-                                        </div>
-                                    </div>
+                                    {index === 0 && images.length === 0 && (
+                                        <span className="admin-upload-thumb__badge">{t("admin.images.mainBadge")}</span>
+                                    )}
                                 </div>
                             ))}
                         </div>
-                    ) : isEdit ? (
-                        <p>Aucune image ajoutée.</p>
-                    ) : selectedFiles.length === 0 ? (
-                        <p>Sélectionnez des images ci-dessus pour les joindre à la voiture.</p>
-                    ) : null}
+
+                        <div className="admin-upload-queue__actions">
+                            {isEdit ? (
+                                <button
+                                    type="button"
+                                    className="admin-button"
+                                    onClick={handleImageUpload}
+                                    disabled={imageLoading}
+                                >
+                                    {imageLoading
+                                        ? t("admin.images.uploading")
+                                        : t("admin.images.sendImages", { count: selectedFiles.length })}
+                                </button>
+                            ) : (
+                                <span className="admin-upload-preview__hint">
+                                    {t("admin.images.postCreateHint")}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {isEdit && images.length > 0 ? (
+                    <div className="admin-images-grid">
+                        {images.map((image) => (
+                            <div key={image.id} className={`admin-image-card ${image.is_main ? "is-main" : ""}`}>
+                                <img
+                                    src={image.image_url}
+                                    alt={t("admin.images.imageAlt")}
+                                    className="admin-image-card__img"
+                                />
+
+                                <div className="admin-image-card__content">
+                                    <div className="admin-image-card__meta">
+                                        {image.is_main ? (
+                                            <span className="admin-image-card__badge">
+                                                {t("admin.images.mainImage")}
+                                            </span>
+                                        ) : (
+                                            <span className="admin-image-card__hint">
+                                                {t("admin.images.secondaryImage")}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    <div className="admin-image-card__actions">
+                                        {!image.is_main && (
+                                            <button
+                                                type="button"
+                                                className="admin-link"
+                                                onClick={() => handleSetMain(image.id)}
+                                            >
+                                                {t("admin.images.setMain")}
+                                            </button>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            className="admin-link admin-link--danger"
+                                            onClick={() => openDeleteImageConfirm(image)}
+                                        >
+                                            {t("admin.images.deleteImage")}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : isEdit ? (
+                    <p>{t("admin.images.noImages")}</p>
+                ) : selectedFiles.length === 0 ? (
+                    <p>{t("admin.images.selectImages")}</p>
+                ) : null}
             </AccordionSection>
 
             <div className="admin-form__actions admin-form__actions--final">
@@ -1480,7 +1409,11 @@ export default function AdminCarFormPage() {
                     className="admin-button"
                     disabled={formSaving}
                 >
-                    {formSaving ? "Enregistrement..." : isEdit ? "Enregistrer les modifications" : "Ajouter la voiture"}
+                    {formSaving
+                        ? t("admin.form.saving")
+                        : isEdit
+                          ? t("admin.form.saveChanges")
+                          : t("admin.form.addCarAction")}
                 </button>
             </div>
 
@@ -1488,7 +1421,7 @@ export default function AdminCarFormPage() {
                 open={confirmState.open}
                 title={confirmState.title}
                 message={confirmState.message}
-                confirmLabel="Supprimer"
+                confirmLabel={t("common.delete")}
                 loading={confirmLoading}
                 onCancel={closeConfirmDialog}
                 onConfirm={handleConfirmAction}

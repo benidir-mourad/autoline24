@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import { useSiteSettings } from "../hooks/useSiteSettings";
@@ -34,6 +35,7 @@ const initialMailForm = {
 };
 
 export default function AdminSettingsPage() {
+    const { t } = useTranslation();
     const { refreshContactSettings } = useSiteSettings();
     const { user, changeEmail, changePassword } = useAuth();
     const [form, setForm] = useState(initialForm);
@@ -78,10 +80,10 @@ export default function AdminSettingsPage() {
                 });
                 setMailPasswordConfigured(mailRes.data.mail_password_configured || false);
             } catch (error) {
-                console.error("Erreur lors du chargement des paramètres :", error);
+                console.error(error);
                 setFeedback({
                     type: "error",
-                    message: "Impossible de charger les paramètres du site.",
+                    message: t("admin.settings.loadError"),
                 });
             } finally {
                 setLoading(false);
@@ -89,7 +91,7 @@ export default function AdminSettingsPage() {
         }
 
         fetchSettings();
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         setEmailForm((prev) => ({
@@ -126,14 +128,14 @@ export default function AdminSettingsPage() {
             setFeedback({ type: "", message: "" });
             await api.put("/admin/settings/contact", form);
             await refreshContactSettings();
-            setFeedback({ type: "success", message: "Paramètres enregistrés." });
+            setFeedback({ type: "success", message: t("admin.settings.saveSuccess") });
         } catch (error) {
-            console.error("Erreur lors de l'enregistrement des paramètres :", error);
+            console.error(error);
             setFeedback({
                 type: "error",
                 message:
                     error.response?.data?.message ||
-                    "Impossible d'enregistrer les paramètres.",
+                    t("admin.settings.saveError"),
             });
         } finally {
             setSaving(false);
@@ -150,17 +152,17 @@ export default function AdminSettingsPage() {
             setEmailForm((prev) => ({ ...prev, current_password: "" }));
             setEmailFeedback({
                 type: "success",
-                message: "Adresse e-mail de connexion mise à jour avec succès.",
+                message: t("admin.settings.emailUpdateSuccess"),
             });
         } catch (error) {
-            console.error("Erreur lors du changement d'e-mail :", error);
+            console.error(error);
             setEmailFeedback({
                 type: "error",
                 message:
                     error.response?.data?.message ||
                     error.response?.data?.errors?.email?.[0] ||
                     error.response?.data?.errors?.current_password?.[0] ||
-                    "Impossible de mettre à jour l'adresse e-mail de connexion.",
+                    t("admin.settings.emailUpdateError"),
             });
         } finally {
             setEmailSaving(false);
@@ -177,17 +179,17 @@ export default function AdminSettingsPage() {
             setPasswordForm(initialPasswordForm);
             setPasswordFeedback({
                 type: "success",
-                message: "Mot de passe mis à jour avec succès.",
+                message: t("admin.settings.passwordUpdateSuccess"),
             });
         } catch (error) {
-            console.error("Erreur lors du changement de mot de passe :", error);
+            console.error(error);
             setPasswordFeedback({
                 type: "error",
                 message:
                     error.response?.data?.message ||
                     error.response?.data?.errors?.current_password?.[0] ||
                     error.response?.data?.errors?.password?.[0] ||
-                    "Impossible de mettre à jour le mot de passe.",
+                    t("admin.settings.passwordUpdateError"),
             });
         } finally {
             setPasswordSaving(false);
@@ -211,10 +213,10 @@ export default function AdminSettingsPage() {
             setMailForm((prev) => ({ ...prev, mail_password: "" }));
             setMailFeedback({
                 type: "success",
-                message: "Configuration mail enregistrée.",
+                message: t("admin.settings.mailSaveSuccess"),
             });
         } catch (error) {
-            console.error("Erreur lors de l'enregistrement de la config mail :", error);
+            console.error(error);
             const errors = error.response?.data?.errors;
             const firstError = errors ? Object.values(errors)[0]?.[0] : null;
             setMailFeedback({
@@ -222,7 +224,7 @@ export default function AdminSettingsPage() {
                 message:
                     firstError ||
                     error.response?.data?.message ||
-                    "Impossible d'enregistrer la configuration mail.",
+                    t("admin.settings.mailSaveError"),
             });
         } finally {
             setMailSaving(false);
@@ -232,16 +234,16 @@ export default function AdminSettingsPage() {
     return (
         <main className="page admin-page">
             <div className="page-backlinks admin-print-hidden">
-                <Link to="/admin">Retour au choix admin</Link>
-                <Link to="/admin/cars">Liste des voitures</Link>
-                <Link to="/contact">Voir la page contact</Link>
+                <Link to="/admin">{t("admin.backToAdmin")}</Link>
+                <Link to="/admin/cars">{t("admin.settings.backToAdminList")}</Link>
+                <Link to="/contact">{t("admin.seeContactPage")}</Link>
             </div>
 
             <div className="admin-page__header admin-page__header--stacked">
                 <div>
-                    <h1>Paramètres</h1>
+                    <h1>{t("admin.settings.title")}</h1>
                     <p className="admin-page__subtitle">
-                        Coordonnées du vendeur, configuration mail et sécurité du compte admin.
+                        {t("admin.settings.subtitle")}
                     </p>
                 </div>
             </div>
@@ -253,56 +255,53 @@ export default function AdminSettingsPage() {
             )}
 
             {loading ? (
-                <p>Chargement...</p>
+                <p>{t("common.loading")}</p>
             ) : (
                 <>
                     <form className="admin-form" onSubmit={handleSubmit}>
                         <input
                             name="contact_phone"
-                            placeholder="Téléphone"
+                            placeholder={t("admin.settings.phonePlaceholder")}
                             value={form.contact_phone}
                             onChange={handleChange}
                         />
                         <input
                             name="contact_email"
                             type="email"
-                            placeholder="E-mail public de contact"
+                            placeholder={t("admin.settings.emailPlaceholder")}
                             value={form.contact_email}
                             onChange={handleChange}
                         />
                         <input
                             name="contact_address"
-                            placeholder="Adresse"
+                            placeholder={t("admin.settings.addressPlaceholder")}
                             value={form.contact_address}
                             onChange={handleChange}
                         />
                         <input
                             name="company_vat"
-                            placeholder="Numéro de TVA"
+                            placeholder={t("admin.settings.vatPlaceholder")}
                             value={form.company_vat}
                             onChange={handleChange}
                         />
                         <input
                             name="contact_map_embed_url"
-                            placeholder="URL de la carte intégrée"
+                            placeholder={t("admin.settings.mapUrlPlaceholder")}
                             value={form.contact_map_embed_url}
                             onChange={handleChange}
                         />
 
                         <div className="admin-form__actions">
                             <button type="submit" className="admin-button" disabled={saving}>
-                                {saving ? "Enregistrement..." : "Enregistrer"}
+                                {saving ? t("admin.settings.saving") : t("admin.settings.save")}
                             </button>
                         </div>
                     </form>
 
                     <section className="admin-settings-panel">
                         <div className="admin-settings-panel__header">
-                            <h2>Configuration de l'envoi de mails</h2>
-                            <p>
-                                Paramètres SMTP pour l'envoi des mails de réinitialisation de mot de passe.
-                                Ces informations sont stockées en base de données — jamais dans le code.
-                            </p>
+                            <h2>{t("admin.settings.mailTitle")}</h2>
+                            <p>{t("admin.settings.mailDesc")}</p>
                         </div>
 
                         {mailFeedback.message && (
@@ -314,7 +313,7 @@ export default function AdminSettingsPage() {
                         <form className="admin-form" onSubmit={handleMailSubmit}>
                             <input
                                 name="mail_host"
-                                placeholder="Serveur SMTP (ex: smtp-mail.outlook.com)"
+                                placeholder={t("admin.settings.mailHost")}
                                 value={mailForm.mail_host}
                                 onChange={handleMailChange}
                                 required
@@ -323,7 +322,7 @@ export default function AdminSettingsPage() {
                             <input
                                 name="mail_port"
                                 type="number"
-                                placeholder="Port (ex: 587)"
+                                placeholder={t("admin.settings.mailPort")}
                                 value={mailForm.mail_port}
                                 onChange={handleMailChange}
                                 required
@@ -334,15 +333,15 @@ export default function AdminSettingsPage() {
                                 value={mailForm.mail_encryption}
                                 onChange={handleMailChange}
                             >
-                                <option value="tls">TLS (port 587 — recommandé)</option>
-                                <option value="ssl">SSL (port 465)</option>
-                                <option value="none">Aucun chiffrement</option>
+                                <option value="tls">{t("admin.settings.mailEncryptionTls")}</option>
+                                <option value="ssl">{t("admin.settings.mailEncryptionSsl")}</option>
+                                <option value="none">{t("admin.settings.mailEncryptionNone")}</option>
                             </select>
 
                             <input
                                 name="mail_username"
                                 type="email"
-                                placeholder="Adresse e-mail expéditeur (ex: ton@outlook.com)"
+                                placeholder={t("admin.settings.mailUsername")}
                                 value={mailForm.mail_username}
                                 onChange={handleMailChange}
                                 required
@@ -353,8 +352,8 @@ export default function AdminSettingsPage() {
                                 type="password"
                                 placeholder={
                                     mailPasswordConfigured
-                                        ? "Mot de passe configuré — laisser vide pour le conserver"
-                                        : "Mot de passe du compte mail"
+                                        ? t("admin.settings.mailPasswordConfigured")
+                                        : t("admin.settings.mailPassword")
                                 }
                                 value={mailForm.mail_password}
                                 onChange={handleMailChange}
@@ -363,7 +362,7 @@ export default function AdminSettingsPage() {
                             <input
                                 name="mail_from_address"
                                 type="email"
-                                placeholder="Adresse expéditeur affichée dans le mail reçu"
+                                placeholder={t("admin.settings.mailFromAddress")}
                                 value={mailForm.mail_from_address}
                                 onChange={handleMailChange}
                                 required
@@ -371,7 +370,7 @@ export default function AdminSettingsPage() {
 
                             <div className="admin-form__actions">
                                 <button type="submit" className="admin-button" disabled={mailSaving}>
-                                    {mailSaving ? "Enregistrement..." : "Enregistrer la configuration mail"}
+                                    {mailSaving ? t("admin.settings.savingMail") : t("admin.settings.saveMail")}
                                 </button>
                             </div>
                         </form>
@@ -379,10 +378,8 @@ export default function AdminSettingsPage() {
 
                     <section className="admin-settings-panel">
                         <div className="admin-settings-panel__header">
-                            <h2>Adresse e-mail de connexion admin</h2>
-                            <p>
-                                Modifiez ici l'adresse utilisée pour vous connecter à l'admin.
-                            </p>
+                            <h2>{t("admin.settings.emailTitle")}</h2>
+                            <p>{t("admin.settings.emailDesc")}</p>
                         </div>
 
                         {emailFeedback.message && (
@@ -395,14 +392,14 @@ export default function AdminSettingsPage() {
                             <input
                                 type="email"
                                 name="email"
-                                placeholder="Nouvelle adresse e-mail de connexion"
+                                placeholder={t("admin.settings.newEmailPlaceholder")}
                                 value={emailForm.email}
                                 onChange={handleEmailChange}
                             />
                             <input
                                 type="password"
                                 name="current_password"
-                                placeholder="Mot de passe actuel"
+                                placeholder={t("admin.settings.currentPasswordPlaceholder")}
                                 value={emailForm.current_password}
                                 onChange={handleEmailChange}
                             />
@@ -414,8 +411,8 @@ export default function AdminSettingsPage() {
                                     disabled={emailSaving}
                                 >
                                     {emailSaving
-                                        ? "Mise à jour..."
-                                        : "Mettre à jour l'e-mail de connexion"}
+                                        ? t("admin.settings.updatingEmail")
+                                        : t("admin.settings.updateEmail")}
                                 </button>
                             </div>
                         </form>
@@ -423,8 +420,8 @@ export default function AdminSettingsPage() {
 
                     <section className="admin-settings-panel">
                         <div className="admin-settings-panel__header">
-                            <h2>Sécurité du compte admin</h2>
-                            <p>Modifiez le mot de passe de votre compte une fois connecté.</p>
+                            <h2>{t("admin.settings.passwordTitle")}</h2>
+                            <p>{t("admin.settings.passwordDesc")}</p>
                         </div>
 
                         {passwordFeedback.message && (
@@ -439,21 +436,21 @@ export default function AdminSettingsPage() {
                             <input
                                 type="password"
                                 name="current_password"
-                                placeholder="Mot de passe actuel"
+                                placeholder={t("admin.settings.currentPasswordLabel")}
                                 value={passwordForm.current_password}
                                 onChange={handlePasswordChange}
                             />
                             <input
                                 type="password"
                                 name="password"
-                                placeholder="Nouveau mot de passe"
+                                placeholder={t("admin.settings.newPasswordLabel")}
                                 value={passwordForm.password}
                                 onChange={handlePasswordChange}
                             />
                             <input
                                 type="password"
                                 name="password_confirmation"
-                                placeholder="Confirmation du mot de passe"
+                                placeholder={t("admin.settings.confirmPasswordLabel")}
                                 value={passwordForm.password_confirmation}
                                 onChange={handlePasswordChange}
                             />
@@ -465,8 +462,8 @@ export default function AdminSettingsPage() {
                                     disabled={passwordSaving}
                                 >
                                     {passwordSaving
-                                        ? "Mise à jour..."
-                                        : "Mettre à jour le mot de passe"}
+                                        ? t("admin.settings.updatingPassword")
+                                        : t("admin.settings.updatePassword")}
                                 </button>
                             </div>
                         </form>

@@ -1,15 +1,22 @@
+import { useTranslation } from "react-i18next";
+
 export default function ConfirmDialog({
     open,
     title,
     message,
-    confirmLabel = "Confirmer",
-    cancelLabel = "Annuler",
+    confirmLabel,
+    cancelLabel,
     tone = "danger",
     loading = false,
     onCancel,
     onConfirm,
 }) {
+    const { t } = useTranslation();
+
     if (!open) return null;
+
+    const resolvedConfirmLabel = confirmLabel ?? t("admin.confirm.defaultConfirm");
+    const resolvedCancelLabel = cancelLabel ?? t("admin.confirm.cancel");
 
     return (
         <div className="confirm-dialog-backdrop" role="presentation">
@@ -29,7 +36,7 @@ export default function ConfirmDialog({
                         onClick={onCancel}
                         disabled={loading}
                     >
-                        {cancelLabel}
+                        {resolvedCancelLabel}
                     </button>
 
                     <button
@@ -38,7 +45,7 @@ export default function ConfirmDialog({
                         onClick={onConfirm}
                         disabled={loading}
                     >
-                        {loading ? "Suppression..." : confirmLabel}
+                        {loading ? t("admin.confirm.deletingLabel") : resolvedConfirmLabel}
                     </button>
                 </div>
             </div>

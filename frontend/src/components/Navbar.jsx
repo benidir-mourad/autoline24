@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../hooks/useTheme";
 import { useSiteSettings } from "../hooks/useSiteSettings";
+import LanguageSwitcher from "./LanguageSwitcher";
 import "../styles/navbar.css";
 
 function SunIcon() {
@@ -48,6 +50,7 @@ function HamburgerIcon({ open }) {
 }
 
 export default function Navbar() {
+    const { t } = useTranslation();
     const { contactSettings } = useSiteSettings();
     const { theme, toggle } = useTheme();
     const [scrolled, setScrolled] = useState(false);
@@ -77,23 +80,24 @@ export default function Navbar() {
             </NavLink>
 
             <div className="navbar__links">
-                <NavLink to="/contact" onClick={closeMenu}>Contact</NavLink>
-                <NavLink to="/admin" onClick={closeMenu}>Admin</NavLink>
-                <NavLink to="/cars" className="navbar__cta" onClick={closeMenu}>Nos voitures</NavLink>
+                <NavLink to="/contact" onClick={closeMenu}>{t("nav.contact")}</NavLink>
+                <NavLink to="/admin" onClick={closeMenu}>{t("nav.admin")}</NavLink>
+                <NavLink to="/cars" className="navbar__cta" onClick={closeMenu}>{t("nav.cars")}</NavLink>
             </div>
 
             <div className="navbar__actions">
+                <LanguageSwitcher />
                 <button
                     className="navbar__theme-toggle"
                     onClick={toggle}
-                    aria-label={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+                    aria-label={theme === "dark" ? t("nav.switchToLight") : t("nav.switchToDark")}
                 >
                     {theme === "dark" ? <SunIcon /> : <MoonIcon />}
                 </button>
                 <button
                     className="navbar__hamburger"
                     onClick={() => setMenuOpen(o => !o)}
-                    aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+                    aria-label={menuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
                     aria-expanded={menuOpen}
                 >
                     <HamburgerIcon open={menuOpen} />

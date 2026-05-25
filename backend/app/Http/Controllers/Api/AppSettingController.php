@@ -4,19 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppSetting;
+use App\Services\AppSettingService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AppSettingController extends Controller
 {
-    private array $contactDefaults = [
-        'contact_phone' => '+32 470 00 00 00',
-        'contact_email' => 'contact@autoline24.test',
-        'contact_address' => 'Rue de l Exemple 1, 1000 Bruxelles',
-        'company_vat' => 'BE 0123.456.789',
-        'contact_map_embed_url' => 'https://www.google.com/maps?q=Bruxelles&output=embed',
-    ];
-
-    private array $mailKeys = [
+    private const MAIL_KEYS = [
         'mail_host',
         'mail_port',
         'mail_encryption',
@@ -25,42 +19,41 @@ class AppSettingController extends Controller
         'mail_from_address',
     ];
 
-    public function publicContact()
+    public function __construct(private readonly AppSettingService $settings) {}
+
+    public function publicContact(): JsonResponse
     {
-        return response()->json($this->getContactSettings());
+        return response()->json($this->settings->getContactSettings());
     }
 
-    public function adminContact()
+    public function adminContact(): JsonResponse
     {
-        return response()->json($this->getContactSettings());
+        return response()->json($this->settings->getContactSettings());
     }
 
-    public function updateContact(Request $request)
+    public function updateContact(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'contact_phone' => ['required', 'string', 'max:255'],
-            'contact_email' => ['required', 'email', 'max:255'],
-            'contact_address' => ['required', 'string', 'max:500'],
-            'company_vat' => ['nullable', 'string', 'max:255'],
+            'contact_phone'         => ['required', 'string', 'max:255'],
+            'contact_email'         => ['required', 'email', 'max:255'],
+            'contact_address'       => ['required', 'string', 'max:500'],
+            'company_vat'           => ['nullable', 'string', 'max:255'],
             'contact_map_embed_url' => ['nullable', 'url', 'max:2000'],
         ]);
 
         foreach ($validated as $key => $value) {
-            AppSetting::updateOrCreate(
-                ['key' => $key],
-                ['value' => $value]
-            );
+            AppSetting::updateOrCreate(['key' => $key], ['value' => $value]);
         }
 
         return response()->json([
-            'message' => 'Coordonnées mises à jour avec succès.',
-            'settings' => $this->getContactSettings(),
+            'message'  => 'Coordonnées mises à jour avec succès.',
+            'settings' => $this->settings->getContactSettings(),
         ]);
     }
 
-    public function adminMail()
+    public function adminMail(): JsonResponse
     {
-        $stored = AppSetting::whereIn('key', $this->mailKeys)
+        $stored = AppSetting::whereIn('key', self::MAIL_KEYS)
             ->pluck('value', 'key')
             ->all();
 
@@ -74,7 +67,7 @@ class AppSettingController extends Controller
         ]);
     }
 
-    public function updateMail(Request $request)
+    public function updateMail(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'mail_host'         => ['required', 'string', 'max:255'],
@@ -86,22 +79,16 @@ class AppSettingController extends Controller
         ]);
 
         foreach ($validated as $key => $value) {
-            if ($key === 'mail_password' && $value === null) {
-                continue;
+            if ($key === 'mail_password') {
+                if ($value === null) {
+                    continue;
+                }
+                $value = $this->settings->encryptMailPassword($value);
             }
+
             AppSetting::updateOrCreate(['key' => $key], ['value' => (string) $value]);
         }
 
         return response()->json(['message' => 'Configuration mail mise à jour avec succès.']);
-    }
-
-    private function getContactSettings(): array
-    {
-        $storedSettings = AppSetting::query()
-            ->whereIn('key', array_keys($this->contactDefaults))
-            ->pluck('value', 'key')
-            ->all();
-
-        return array_merge($this->contactDefaults, $storedSettings);
     }
 }
